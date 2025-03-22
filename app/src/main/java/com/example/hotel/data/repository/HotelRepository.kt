@@ -20,18 +20,26 @@ class HotelRepository(
 
     // Room
     suspend fun getAllRooms(): List<Room> {
-        return firestore.collection("rooms")
-            .get()
-            .await()
-            .documents
-            .mapNotNull { it.toObject(Room::class.java) }
+        return try {
+            firestore.collection("rooms")
+                .get()
+                .await()
+                .documents
+                .mapNotNull { it.toObject(Room::class.java) }
+        } catch (e: Exception) {
+            throw Exception("Ошибка получения списка комнат: ${e.message}")
+        }
     }
 
     suspend fun insertRoom(room: Room): String {
-        val docRef = firestore.collection("rooms").document()
-        val newRoom = room.copy(roomId = docRef.id)
-        docRef.set(newRoom).await()
-        return docRef.id
+        return try {
+            val docRef = firestore.collection("rooms").document()
+            val newRoom = room.copy(roomId = docRef.id)
+            docRef.set(newRoom).await()
+            docRef.id
+        } catch (e: Exception) {
+            throw Exception("Ошибка добавления комнаты: ${e.message}")
+        }
     }
 
     suspend fun updateRoom(
@@ -41,134 +49,210 @@ class HotelRepository(
         price: Double? = null,
         capacity: Int? = null,
         description: String? = null,
-        imageUrl: String? = null
+        imageUrl: String? = null,
+        additionalPhotos: List<String>? = null
     ) {
-        val updates = mutableMapOf<String, Any>()
-        type?.let { updates["type"] = it }
-        name?.let { updates["name"] = it }
-        price?.let { updates["price"] = it }
-        capacity?.let { updates["capacity"] = it }
-        description?.let { updates["description"] = it }
-        imageUrl?.let { updates["imageUrl"] = it }
-        if (updates.isNotEmpty()) {
-            firestore.collection("rooms").document(roomId).update(updates).await()
+        try {
+            val updates = mutableMapOf<String, Any>()
+            type?.let { updates["type"] = it }
+            name?.let { updates["name"] = it }
+            price?.let { updates["price"] = it }
+            capacity?.let { updates["capacity"] = it }
+            description?.let { updates["description"] = it }
+            imageUrl?.let { updates["imageUrl"] = it }
+            additionalPhotos?.let { updates["additionalPhotos"] = it }
+            if (updates.isNotEmpty()) {
+                firestore.collection("rooms").document(roomId).update(updates).await()
+            }
+        } catch (e: Exception) {
+            throw Exception("Ошибка обновления комнаты: ${e.message}")
         }
     }
 
     suspend fun deleteRoom(roomId: String) {
-        firestore.collection("rooms").document(roomId).delete().await()
+        try {
+            firestore.collection("rooms").document(roomId).delete().await()
+        } catch (e: Exception) {
+            throw Exception("Ошибка удаления комнаты: ${e.message}")
+        }
     }
 
     // User
     suspend fun getUserByEmail(email: String): User? {
-        return firestore.collection("users")
-            .whereEqualTo("email", email)
-            .get()
-            .await()
-            .documents
-            .firstOrNull()
-            ?.toObject(User::class.java)
+        return try {
+            firestore.collection("users")
+                .whereEqualTo("email", email)
+                .get()
+                .await()
+                .documents
+                .firstOrNull()
+                ?.toObject(User::class.java)
+        } catch (e: Exception) {
+            throw Exception("Ошибка получения пользователя: ${e.message}")
+        }
     }
 
     suspend fun insertUser(user: User): String {
-        val docRef = firestore.collection("users").document()
-        val newUser = user.copy(userId = docRef.id)
-        docRef.set(newUser).await()
-        return docRef.id
+        return try {
+            val docRef = firestore.collection("users").document()
+            val newUser = user.copy(userId = docRef.id)
+            docRef.set(newUser).await()
+            docRef.id
+        } catch (e: Exception) {
+            throw Exception("Ошибка добавления пользователя: ${e.message}")
+        }
     }
 
     suspend fun isManager(userId: String): Boolean {
-        val user = firestore.collection("users").document(userId).get().await().toObject(User::class.java)
-        return user?.role == "Manager"
+        return try {
+            val user = firestore.collection("users").document(userId).get().await().toObject(User::class.java)
+            user?.role == "Manager"
+        } catch (e: Exception) {
+            throw Exception("Ошибка проверки роли пользователя: ${e.message}")
+        }
     }
 
     // News
     suspend fun getAllNews(): List<News> {
-        return firestore.collection("news")
-            .get()
-            .await()
-            .documents
-            .mapNotNull { it.toObject(News::class.java) }
+        return try {
+            firestore.collection("news")
+                .get()
+                .await()
+                .documents
+                .mapNotNull { it.toObject(News::class.java) }
+        } catch (e: Exception) {
+            throw Exception("Ошибка получения списка новостей: ${e.message}")
+        }
     }
 
-    suspend fun insertNews(news: News): String {
-        val docRef = firestore.collection("news").document()
-        val newNews = news.copy(newsId = docRef.id)
-        docRef.set(newNews).await()
-        return docRef.id
+    suspend fun getNewsById(newsId: String): News? {
+        return try {
+            firestore.collection("news")
+                .document(newsId)
+                .get()
+                .await()
+                .toObject(News::class.java)
+        } catch (e: Exception) {
+            throw Exception("Ошибка получения новости: ${e.message}")
+        }
+    }
+
+    suspend fun addNews(news: News): String {
+        return try {
+            val docRef = firestore.collection("news").document()
+            val newNews = news.copy(newsId = docRef.id)
+            docRef.set(newNews).await()
+            docRef.id
+        } catch (e: Exception) {
+            throw Exception("Ошибка добавления новости: ${e.message}")
+        }
     }
 
     suspend fun updateNews(
         newsId: String,
         title: String? = null,
-        description: String? = null,
-        imageUrl: String? = null
+        content: String? = null,
+        imageUrl: String? = null,
+        additionalPhotos: List<String>? = null
     ) {
-        val updates = mutableMapOf<String, Any>()
-        title?.let { updates["title"] = it }
-        description?.let { updates["description"] = it }
-        imageUrl?.let { updates["imageUrl"] = it }
-        if (updates.isNotEmpty()) {
-            firestore.collection("news").document(newsId).update(updates).await()
+        try {
+            val updates = mutableMapOf<String, Any>()
+            title?.let { updates["title"] = it }
+            content?.let { updates["content"] = it }
+            imageUrl?.let { updates["imageUrl"] = it }
+            additionalPhotos?.let { updates["additionalPhotos"] = it }
+            if (updates.isNotEmpty()) {
+                firestore.collection("news").document(newsId).update(updates).await()
+            }
+        } catch (e: Exception) {
+            throw Exception("Ошибка обновления новости: ${e.message}")
         }
     }
 
     suspend fun deleteNews(newsId: String) {
-        firestore.collection("news").document(newsId).delete().await()
+        try {
+            firestore.collection("news").document(newsId).delete().await()
+        } catch (e: Exception) {
+            throw Exception("Ошибка удаления новости: ${e.message}")
+        }
     }
 
     // Service
     suspend fun getAllServices(): List<Service> {
-        return firestore.collection("services")
-            .get()
-            .await()
-            .documents
-            .mapNotNull { it.toObject(Service::class.java) }
+        return try {
+            firestore.collection("services")
+                .get()
+                .await()
+                .documents
+                .mapNotNull { it.toObject(Service::class.java) }
+        } catch (e: Exception) {
+            throw Exception("Ошибка получения списка акций: ${e.message}")
+        }
     }
 
     suspend fun insertService(service: Service): String {
-        val docRef = firestore.collection("services").document()
-        val newService = service.copy(serviceId = docRef.id)
-        docRef.set(newService).await()
-        return docRef.id
+        return try {
+            val docRef = firestore.collection("services").document()
+            val newService = service.copy(serviceId = docRef.id)
+            docRef.set(newService).await()
+            docRef.id
+        } catch (e: Exception) {
+            throw Exception("Ошибка добавления акции: ${e.message}")
+        }
     }
 
     suspend fun updateService(
         serviceId: String,
         name: String? = null,
         description: String? = null,
-        price: Double? = null,
-        imageUrl: String? = null
+        imageUrl: String? = null,
+        additionalPhotos: List<String>? = null
     ) {
-        val updates = mutableMapOf<String, Any>()
-        name?.let { updates["name"] = it }
-        description?.let { updates["description"] = it }
-        price?.let { updates["price"] = it }
-        imageUrl?.let { updates["imageUrl"] = it }
-        if (updates.isNotEmpty()) {
-            firestore.collection("services").document(serviceId).update(updates).await()
+        try {
+            val updates = mutableMapOf<String, Any>()
+            name?.let { updates["name"] = it }
+            description?.let { updates["description"] = it }
+            imageUrl?.let { updates["imageUrl"] = it }
+            additionalPhotos?.let { updates["additionalPhotos"] = it }
+            if (updates.isNotEmpty()) {
+                firestore.collection("services").document(serviceId).update(updates).await()
+            }
+        } catch (e: Exception) {
+            throw Exception("Ошибка обновления акции: ${e.message}")
         }
     }
 
     suspend fun deleteService(serviceId: String) {
-        firestore.collection("services").document(serviceId).delete().await()
+        try {
+            firestore.collection("services").document(serviceId).delete().await()
+        } catch (e: Exception) {
+            throw Exception("Ошибка удаления акции: ${e.message}")
+        }
     }
 
     // Booking
     suspend fun getBookingsByUser(userId: String): List<Booking> {
-        return firestore.collection("bookings")
-            .whereEqualTo("userId", userId)
-            .get()
-            .await()
-            .documents
-            .mapNotNull { it.toObject(Booking::class.java) }
+        return try {
+            firestore.collection("bookings")
+                .whereEqualTo("userId", userId)
+                .get()
+                .await()
+                .documents
+                .mapNotNull { it.toObject(Booking::class.java) }
+        } catch (e: Exception) {
+            throw Exception("Ошибка получения списка бронирований: ${e.message}")
+        }
     }
 
     suspend fun insertBooking(booking: Booking): String {
-        val docRef = firestore.collection("bookings").document()
-        val newBooking = booking.copy(bookingId = docRef.id)
-        docRef.set(newBooking).await()
-        return docRef.id
+        return try {
+            val docRef = firestore.collection("bookings").document()
+            val newBooking = booking.copy(bookingId = docRef.id)
+            docRef.set(newBooking).await()
+            docRef.id
+        } catch (e: Exception) {
+            throw Exception("Ошибка добавления бронирования: ${e.message}")
+        }
     }
 
     suspend fun updateBooking(
@@ -180,19 +264,27 @@ class HotelRepository(
         totalPrice: Double? = null,
         status: String? = null
     ) {
-        val updates = mutableMapOf<String, Any>()
-        userId?.let { updates["userId"] = it }
-        roomId?.let { updates["roomId"] = it }
-        checkInDate?.let { updates["checkInDate"] = it }
-        checkOutDate?.let { updates["checkOutDate"] = it }
-        totalPrice?.let { updates["totalPrice"] = it }
-        status?.let { updates["status"] = it }
-        if (updates.isNotEmpty()) {
-            firestore.collection("bookings").document(bookingId).update(updates).await()
+        try {
+            val updates = mutableMapOf<String, Any>()
+            userId?.let { updates["userId"] = it }
+            roomId?.let { updates["roomId"] = it }
+            checkInDate?.let { updates["checkInDate"] = it }
+            checkOutDate?.let { updates["checkOutDate"] = it }
+            totalPrice?.let { updates["totalPrice"] = it }
+            status?.let { updates["status"] = it }
+            if (updates.isNotEmpty()) {
+                firestore.collection("bookings").document(bookingId).update(updates).await()
+            }
+        } catch (e: Exception) {
+            throw Exception("Ошибка обновления бронирования: ${e.message}")
         }
     }
 
     suspend fun deleteBooking(bookingId: String) {
-        firestore.collection("bookings").document(bookingId).delete().await()
+        try {
+            firestore.collection("bookings").document(bookingId).delete().await()
+        } catch (e: Exception) {
+            throw Exception("Ошибка удаления бронирования: ${e.message}")
+        }
     }
 }

@@ -11,5 +11,6 @@ data class Booking(
     val checkInDate: String = "",
     val checkOutDate: String = "",
     val totalPrice: Double = 0.0,
-    val status: String = "Pending" // "Pending", "Confirmed", "Cancelled"
+    val status: String = "Pending"
 )
+
