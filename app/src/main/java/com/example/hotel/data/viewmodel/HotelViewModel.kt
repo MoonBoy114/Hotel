@@ -13,7 +13,9 @@ import com.example.hotel.data.User
 import com.example.hotel.data.entity.RoomType
 import com.example.hotel.data.repository.HotelRepository
 import com.google.firebase.firestore.FirebaseFirestore
+
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.tasks.await
 
 class HotelViewModel(private val repository: HotelRepository) : ViewModel() {
     private val _currentUser = MutableLiveData<User?>(null)
@@ -37,6 +39,8 @@ class HotelViewModel(private val repository: HotelRepository) : ViewModel() {
     private val _isManager = MutableLiveData<Boolean>(false)
     val isManager: LiveData<Boolean> get() = _isManager
 
+    private val firestore: FirebaseFirestore = FirebaseFirestore.getInstance()
+
     // Авторизация пользователя
     fun loginUser(email: String, password: String) {
         viewModelScope.launch {
@@ -58,11 +62,24 @@ class HotelViewModel(private val repository: HotelRepository) : ViewModel() {
         }
     }
 
-    // Регистрация нового пользователя
     fun registerUser(name: String, email: String, phone: String, password: String) {
         viewModelScope.launch {
             try {
+                // Проверка уникальности email
+                if (isEmailTaken(email)) {
+                    _errorMessage.value = "Этот email уже зарегистрирован"
+                    return@launch
+                }
+
+                // Проверка уникальности телефона
+                if (isPhoneTaken(phone)) {
+                    _errorMessage.value = "Этот номер телефона уже зарегистрирован"
+                    return@launch
+                }
+
+                // Если email и телефон уникальны, создаём пользователя
                 val user = User(
+                    userId = firestore.collection("users").document().id, // Генерируем уникальный ID
                     name = name,
                     email = email,
                     phone = phone,
@@ -74,6 +91,34 @@ class HotelViewModel(private val repository: HotelRepository) : ViewModel() {
             } catch (e: Exception) {
                 _errorMessage.value = e.message
             }
+        }
+    }
+
+    // Проверка, занят ли email
+    suspend fun isEmailTaken(email: String): Boolean {
+        return try {
+            val snapshot = firestore.collection("users")
+                .whereEqualTo("email", email)
+                .get()
+                .await()
+            snapshot.documents.isNotEmpty() // Возвращает true, если email уже существует
+        } catch (e: Exception) {
+            _errorMessage.value = "Ошибка проверки email: ${e.message}"
+            false
+        }
+    }
+
+    // Проверка, занят ли телефон
+    suspend fun isPhoneTaken(phone: String): Boolean {
+        return try {
+            val snapshot = firestore.collection("users")
+                .whereEqualTo("phone", phone)
+                .get()
+                .await()
+            snapshot.documents.isNotEmpty() // Возвращает true, если телефон уже существует
+        } catch (e: Exception) {
+            _errorMessage.value = "Ошибка проверки телефона: ${e.message}"
+            false
         }
     }
 

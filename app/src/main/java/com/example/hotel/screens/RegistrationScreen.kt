@@ -1,5 +1,7 @@
 package com.example.hotel.screens
 
+import android.widget.Space
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Spacer
@@ -7,12 +9,18 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
+import androidx.compose.material3.TextField
+import androidx.compose.material3.TextFieldDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -22,6 +30,8 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.TextRange
 import androidx.compose.ui.text.font.Font
@@ -30,12 +40,15 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.OffsetMapping
+import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.input.TextFieldValue
 import androidx.compose.ui.text.input.TransformedText
 import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewModelScope
 import androidx.navigation.NavHostController
+import com.example.hotel.MaskVisualTransformation
 import com.example.hotel.R
 import com.example.hotel.data.User
 import com.example.hotel.data.viewmodel.HotelViewModel
@@ -61,29 +74,56 @@ fun RegisterScreen(viewModel: HotelViewModel, navController: NavHostController) 
     var emailError by remember { mutableStateOf<String?>(null) }
     var phoneError by remember { mutableStateOf<String?>(null) }
     var passwordError by remember { mutableStateOf<String?>(null) }
+    var emailExists by remember { mutableStateOf(false) } // Флаг для проверки существования email
+    var phoneExists by remember { mutableStateOf(false) } // Флаг для проверки существования телефона
     val errorMessage by viewModel.errorMessage.observeAsState()
+    val mask = MaskVisualTransformation("+7 (###) ###-##-##")
+    var passwordIsVisible by remember { mutableStateOf(false) }
 
     Column(
         modifier = Modifier
             .fillMaxSize()
+            .background(RivieraOrange)
             .padding(16.dp),
         verticalArrangement = Arrangement.Center,
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
-        Text("Регистрация", style = MaterialTheme.typography.headlineMedium)
+        Text(
+            "Регистрация",
+            fontWeight = FontWeight.Bold,
+            fontSize = 30.sp,
+            color = Color.White
+        )
+        Spacer(Modifier.height(16.dp))
 
-        // Поле для имени
-        OutlinedTextField(
+        TextField(
             value = name,
             onValueChange = { newValue ->
                 name = newValue
-                nameError = if (newValue.isBlank() || newValue.length > 50) {
-                    "Имя должно быть от 1 до 50 символов"
+                nameError = if (newValue.isBlank()) {
+                    null
+                } else if (newValue.length < 3 || newValue.length > 50) {
+                    "Имя должно быть от 3 до 50 символов"
                 } else {
                     null
                 }
             },
-            label = { Text("Имя") },
+            label = { Text("Имя пользователя") },
+            colors = TextFieldDefaults.colors(
+                focusedContainerColor = Color(0xFFFFB470),
+                unfocusedContainerColor = Color(0xFFFFB470),
+                errorContainerColor = Color(0xFFFFB470),
+                focusedTextColor = Color.White,
+                unfocusedTextColor = Color.White,
+                errorTextColor = Color.White,
+                focusedLabelColor = Color.White,
+                unfocusedLabelColor = Color.White,
+                errorLabelColor = Color.White,
+                cursorColor = Color.White,
+                focusedIndicatorColor = Color.Transparent,
+                unfocusedIndicatorColor = Color.Transparent,
+                errorIndicatorColor = Color.Transparent
+            ),
             modifier = Modifier.fillMaxWidth(),
             isError = nameError != null,
             keyboardOptions = KeyboardOptions(
@@ -102,21 +142,41 @@ fun RegisterScreen(viewModel: HotelViewModel, navController: NavHostController) 
                     .padding(start = 16.dp, top = 4.dp)
             )
         }
+        Spacer(Modifier.height(10.dp))
 
-        // Поле для email
-        OutlinedTextField(
+
+        TextField(
             value = email,
             onValueChange = { newValue ->
                 email = newValue
-                emailError = if (isValidEmail(newValue)) {
+                emailError = if (newValue.isBlank()) {
                     null
-                } else {
+                } else if (!isValidEmail(newValue)) {
                     "Введите корректный email (например, example@domain.com)"
+                } else {
+                    null
                 }
+                // Сбрасываем ошибку существования email при изменении
+                emailExists = false
             },
             label = { Text("Email") },
+            colors = TextFieldDefaults.colors(
+                focusedContainerColor = Color(0xFFFFB470),
+                unfocusedContainerColor = Color(0xFFFFB470),
+                errorContainerColor = Color(0xFFFFB470),
+                focusedTextColor = Color.White,
+                unfocusedTextColor = Color.White,
+                errorTextColor = Color.White,
+                focusedLabelColor = Color.White,
+                unfocusedLabelColor = Color.White,
+                errorLabelColor = Color.White,
+                cursorColor = Color.White,
+                focusedIndicatorColor = Color.Transparent,
+                unfocusedIndicatorColor = Color.Transparent,
+                errorIndicatorColor = Color.Transparent
+            ),
             modifier = Modifier.fillMaxWidth(),
-            isError = emailError != null,
+            isError = emailError != null || emailExists,
             keyboardOptions = KeyboardOptions(
                 keyboardType = KeyboardType.Email,
                 imeAction = ImeAction.Next
@@ -133,28 +193,59 @@ fun RegisterScreen(viewModel: HotelViewModel, navController: NavHostController) 
                     .padding(start = 16.dp, top = 4.dp)
             )
         }
+        if (emailExists) {
+            Text(
+                text = "Этот email уже зарегистрирован",
+                color = MaterialTheme.colorScheme.error,
+                style = MaterialTheme.typography.bodySmall,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(start = 16.dp, top = 4.dp)
+            )
+        }
+        Spacer(Modifier.height(10.dp))
 
-        // Поле для телефона с фиксированной маской +7(___)___-__-__
-        OutlinedTextField(
+
+        TextField(
             value = phone,
             onValueChange = { newValue ->
-                // Извлекаем только цифры из введённого текста
                 val digits = newValue.text.filter { it.isDigit() }.take(10) // 10 цифр
                 phone = newValue.copy(text = digits)
-                phoneError = if (digits.length == 10) {
+                phoneError = if (digits.isBlank()) {
                     null
-                } else {
+                } else if (digits.length != 10) {
                     "Телефон должен содержать 10 цифр (например, +7(XXX)XXX-XX-XX)"
+                } else {
+                    null
                 }
+                phoneExists = false
             },
             label = { Text("Телефон") },
-            placeholder = { Text("+7(___)___-__-__") }, // Фиксированная маска как placeholder
+            colors = TextFieldDefaults.colors(
+                focusedContainerColor = Color(0xFFFFB470),
+                unfocusedContainerColor = Color(0xFFFFB470),
+                errorContainerColor = Color(0xFFFFB470),
+                focusedTextColor = Color.White,
+                unfocusedTextColor = Color.White,
+                errorTextColor = Color.White,
+                focusedLabelColor = Color.White,
+                unfocusedLabelColor = Color.White,
+                errorLabelColor = Color.White,
+                cursorColor = Color.White,
+                focusedIndicatorColor = Color.Transparent,
+                unfocusedIndicatorColor = Color.Transparent,
+                errorIndicatorColor = Color.Transparent,
+                focusedPlaceholderColor = Color.White,
+                unfocusedPlaceholderColor = Color.White
+            ),
+            placeholder = { Text("+7     -  -  ") }, // Фиксированная маска как placeholder
             modifier = Modifier.fillMaxWidth(),
-            isError = phoneError != null,
+            isError = phoneError != null || phoneExists,
             keyboardOptions = KeyboardOptions(
                 keyboardType = KeyboardType.Phone,
                 imeAction = ImeAction.Next
             ),
+            visualTransformation = mask,
             singleLine = true
         )
         phoneError?.let {
@@ -167,25 +258,65 @@ fun RegisterScreen(viewModel: HotelViewModel, navController: NavHostController) 
                     .padding(start = 16.dp, top = 4.dp)
             )
         }
+        if (phoneExists) {
+            Text(
+                text = "Этот номер телефона уже зарегистрирован",
+                color = MaterialTheme.colorScheme.error,
+                style = MaterialTheme.typography.bodySmall,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(start = 16.dp, top = 4.dp)
+            )
+        }
+        Spacer(Modifier.height(10.dp))
 
         // Поле для пароля
-        OutlinedTextField(
+        TextField(
             value = password,
             onValueChange = { newValue ->
                 password = newValue
-                passwordError = if (newValue.length < 6 || newValue.length > 20) {
-                    "Пароль должен быть от 6 до 20 символов"
+                passwordError = if (newValue.isBlank()) {
+                    null
+                } else if (newValue.length < 5 || newValue.length > 20) {
+                    "Пароль должен быть от 5 до 20 символов"
                 } else {
                     null
                 }
             },
             label = { Text("Пароль") },
+            colors = TextFieldDefaults.colors(
+                focusedContainerColor = Color(0xFFFFB470),
+                unfocusedContainerColor = Color(0xFFFFB470),
+                errorContainerColor = Color(0xFFFFB470),
+                focusedTextColor = Color.White,
+                unfocusedTextColor = Color.White,
+                errorTextColor = Color.White,
+                focusedLabelColor = Color.White,
+                unfocusedLabelColor = Color.White,
+                errorLabelColor = Color.White,
+                cursorColor = Color.White,
+                focusedIndicatorColor = Color.Transparent,
+                unfocusedIndicatorColor = Color.Transparent,
+                errorIndicatorColor = Color.Transparent
+            ),
             modifier = Modifier.fillMaxWidth(),
             isError = passwordError != null,
             keyboardOptions = KeyboardOptions(
                 keyboardType = KeyboardType.Password,
                 imeAction = ImeAction.Done
             ),
+            visualTransformation = if (passwordIsVisible) VisualTransformation.None else PasswordVisualTransformation(),
+            trailingIcon = {
+                IconButton(onClick = { passwordIsVisible = !passwordIsVisible }) {
+                    Icon(
+                        painter = painterResource(
+                            id = if (passwordIsVisible) R.drawable.open_eye else R.drawable.closed_eye
+                        ),
+                        contentDescription = if (passwordIsVisible) "Скрыть пароль" else "Показать пароль",
+                        tint = Color.White
+                    )
+                }
+            },
             singleLine = true
         )
         passwordError?.let {
@@ -206,8 +337,22 @@ fun RegisterScreen(viewModel: HotelViewModel, navController: NavHostController) 
                 if (nameError == null && emailError == null && phoneError == null && passwordError == null &&
                     name.isNotBlank() && email.isNotBlank() && phone.text.isNotBlank() && password.isNotBlank()
                 ) {
-                    // Добавляем префикс +7 только при передаче в viewModel
-                    viewModel.registerUser(name, email, "+7${phone.text}", password)
+
+                    viewModel.viewModelScope.launch {
+                        val emailTaken = viewModel.isEmailTaken(email)
+                        val phoneTaken = viewModel.isPhoneTaken("+7${phone.text}")
+
+                        if (emailTaken) {
+                            emailExists = true
+                        }
+                        if (phoneTaken) {
+                            phoneExists = true
+                        }
+
+                        if (!emailTaken && !phoneTaken) {
+                            viewModel.registerUser(name, email, "+7${phone.text}", password)
+                        }
+                    }
                 } else {
                     if (name.isBlank()) nameError = "Поле имени не может быть пустым"
                     if (email.isBlank()) emailError = "Поле email не может быть пустым"
@@ -215,14 +360,19 @@ fun RegisterScreen(viewModel: HotelViewModel, navController: NavHostController) 
                     if (password.isBlank()) viewModel.setErrorMessage("Поле пароля не может быть пустым")
                 }
             },
+            colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFFF9B40)),
             modifier = Modifier.fillMaxWidth(),
+            shape = RoundedCornerShape(20),
             enabled = name.isNotBlank() && email.isNotBlank() && phone.text.isNotBlank() && password.isNotBlank() &&
                     nameError == null && emailError == null && phoneError == null && passwordError == null
         ) {
             Text("Зарегистрироваться")
         }
 
-        TextButton(onClick = { navController.navigate("login") }) {
+        TextButton(
+            onClick = { navController.navigate("login") },
+            colors = ButtonDefaults.textButtonColors(contentColor = Color.White)
+        ) {
             Text("Уже есть аккаунт? Войти")
         }
 
@@ -236,7 +386,7 @@ fun RegisterScreen(viewModel: HotelViewModel, navController: NavHostController) 
     }
 }
 
-// Функция для валидации email
 private fun isValidEmail(email: String): Boolean {
     return email.isNotBlank() && android.util.Patterns.EMAIL_ADDRESS.matcher(email).matches()
 }
+

@@ -9,7 +9,6 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material3.Button
@@ -18,12 +17,9 @@ import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedTextField
-import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.TextField
-import androidx.compose.material3.TextFieldColors
 import androidx.compose.material3.TextFieldDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -35,33 +31,18 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.RectangleShape
 import androidx.compose.ui.res.painterResource
-import androidx.compose.ui.text.font.Font
-import androidx.compose.ui.text.font.FontFamily
-import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.input.VisualTransformation
-import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 import androidx.navigation.NavHostController
 import com.example.hotel.R
 import com.example.hotel.data.viewmodel.HotelViewModel
 import kotlinx.coroutines.delay
 
-// Определение шрифтов для названия
-val GreatVibes = FontFamily(
-    Font(R.font.greatvibes)
-)
 
-val Montserrat = FontFamily(
-    Font(R.font.montserrat_variablefont_wght, FontWeight.Bold)
-)
-
-// Определение цветов
 val RivieraOrange = Color(0xFFF58D4D)
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -82,7 +63,7 @@ fun LoginScreen(viewModel: HotelViewModel, navController: NavHostController) {
         verticalArrangement = Arrangement.Center,
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
-        // Название вместо логотипа
+
         Column(
             horizontalAlignment = Alignment.CenterHorizontally,
             modifier = Modifier.padding(bottom = 16.dp)
@@ -92,7 +73,7 @@ fun LoginScreen(viewModel: HotelViewModel, navController: NavHostController) {
                 contentDescription = "Riviera Sunrise Resort & Spa Logo",
                 modifier = Modifier
                     .fillMaxWidth()
-                    .height(100.dp) // Установите нужный размер логотипа
+                    .height(100.dp)
                     .padding(bottom = 16.dp)
             )
 
@@ -115,19 +96,19 @@ fun LoginScreen(viewModel: HotelViewModel, navController: NavHostController) {
             },
             label = { Text("Email") },
             colors = TextFieldDefaults.colors(
-                focusedContainerColor = Color(0xFFFF9B40), // Светло-серый фон
-                unfocusedContainerColor = Color(0xFFFF9B40), // Светло-серый фон
-                errorContainerColor = Color(0xFFFF9B40), // Светло-серый фон при ошибке
+                focusedContainerColor = Color(0xFFFFB470),
+                unfocusedContainerColor = Color(0xFFFFB470),
+                errorContainerColor = Color(0xFFFFB470),
                 focusedTextColor = Color.White,
                 unfocusedTextColor = Color.White,
-                errorTextColor = Color.White, // Текст остаётся белым при ошибке
+                errorTextColor = Color.White,
                 focusedLabelColor = Color.White,
                 unfocusedLabelColor = Color.White,
-                errorLabelColor = Color.White, // Лейбл остаётся белым при ошибке
+                errorLabelColor = Color.White,
                 cursorColor = Color.White,
-                focusedIndicatorColor = Color.Transparent, // Убираем линию снизу
-                unfocusedIndicatorColor = Color.Transparent, // Убираем линию снизу
-                errorIndicatorColor = Color.Transparent // Убираем линию снизу при ошибке
+                focusedIndicatorColor = Color.Transparent,
+                unfocusedIndicatorColor = Color.Transparent,
+                errorIndicatorColor = Color.Transparent
             ),
             modifier = Modifier.fillMaxWidth(),
             isError = emailError != null,
@@ -164,19 +145,19 @@ fun LoginScreen(viewModel: HotelViewModel, navController: NavHostController) {
             },
             label = { Text("Пароль") },
             colors = TextFieldDefaults.colors(
-                focusedContainerColor = Color(0xFFFF9B40), // Светло-серый фон
-                unfocusedContainerColor = Color(0xFFFF9B40), // Светло-серый фон
-                errorContainerColor = Color(0xFFFF9B40), // Светло-серый фон при ошибке
+                focusedContainerColor = Color(0xFFFFB470),
+                unfocusedContainerColor = Color(0xFFFFB470),
+                errorContainerColor = Color(0xFFFFB470),
                 focusedTextColor = Color.White,
                 unfocusedTextColor = Color.White,
-                errorTextColor = Color.White, // Текст остаётся белым при ошибке
+                errorTextColor = Color.White,
                 focusedLabelColor = Color.White,
                 unfocusedLabelColor = Color.White,
-                errorLabelColor = Color.White, // Лейбл остаётся белым при ошибке
+                errorLabelColor = Color.White,
                 cursorColor = Color.White,
-                focusedIndicatorColor = Color.Transparent, // Убираем линию снизу
-                unfocusedIndicatorColor = Color.Transparent, // Убираем линию снизу
-                errorIndicatorColor = Color.Transparent // Убираем линию снизу при ошибке
+                focusedIndicatorColor = Color.White,
+                unfocusedIndicatorColor = Color.White,
+                errorIndicatorColor = Color.Transparent
             ),
             modifier = Modifier.fillMaxWidth(),
             isError = passwordError != null,
@@ -227,11 +208,11 @@ fun LoginScreen(viewModel: HotelViewModel, navController: NavHostController) {
             enabled = email.isNotBlank() && password.isNotBlank() &&
                     emailError == null && passwordError == null
         ) {
-            Text("Войти") // Стандартный шрифт MaterialTheme
+            Text("Войти")
         }
 
         TextButton(onClick = { navController.navigate("register") }, colors = ButtonDefaults.textButtonColors(contentColor = Color.White)) {
-            Text("Нет аккаунта? Зарегистрироваться") // Стандартный шрифт MaterialTheme
+            Text("Нет аккаунта? Зарегистрироваться")
         }
 
         errorMessage?.let {
