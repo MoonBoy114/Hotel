@@ -144,13 +144,16 @@ class HotelViewModel(private val repository: HotelRepository) : ViewModel() {
         _isManager.value = false
     }
 
-    // Методы для работы с новостями
     fun addNews(news: News) {
         viewModelScope.launch {
             try {
                 // Валидация
                 if (news.title.isBlank() || news.title.length > 50) {
                     _errorMessage.value = "Заголовок должен быть от 1 до 50 символов"
+                    return@launch
+                }
+                if (news.subTitle.length > 20) { // Проверка длины подзаголовка
+                    _errorMessage.value = "Подзаголовок должен быть до 20 символов"
                     return@launch
                 }
                 if (news.content.isBlank() || news.content.length > 200) {
@@ -178,6 +181,10 @@ class HotelViewModel(private val repository: HotelRepository) : ViewModel() {
                     _errorMessage.value = "Заголовок должен быть от 1 до 50 символов"
                     return@launch
                 }
+                if (news.subTitle.length > 20) { // Проверка длины подзаголовка
+                    _errorMessage.value = "Подзаголовок должен быть до 20 символов"
+                    return@launch
+                }
                 if (news.content.isBlank() || news.content.length > 200) {
                     _errorMessage.value = "Описание должно быть от 1 до 200 символов"
                     return@launch
@@ -190,6 +197,7 @@ class HotelViewModel(private val repository: HotelRepository) : ViewModel() {
                 repository.updateNews(
                     newsId = news.newsId,
                     title = news.title,
+                    subTitle = news.subTitle, // Добавляем subTitle
                     content = news.content,
                     imageUrl = news.imageUrl,
                     additionalPhotos = news.additionalPhotos

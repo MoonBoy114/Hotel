@@ -65,7 +65,7 @@ val Monst = FontFamily(
 )
 
 @Composable
-fun RegisterScreen(viewModel: HotelViewModel, navController: NavHostController) {
+fun RegisterScreen(viewModel: HotelViewModel, navController: NavHostController, modifier: Modifier = Modifier) {
     var name by remember { mutableStateOf("") }
     var email by remember { mutableStateOf("") }
     var phone by remember { mutableStateOf(TextFieldValue("")) } // Храним только цифры

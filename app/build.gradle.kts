@@ -65,4 +65,6 @@ dependencies {
     debugImplementation(libs.androidx.ui.tooling)
     debugImplementation(libs.androidx.ui.test.manifest)
     implementation("com.google.firebase:firebase-analytics")
+    implementation(libs.firebase.storage)
+    implementation(libs.coil.compose)
 }

@@ -151,6 +151,7 @@ class HotelRepository(
     suspend fun updateNews(
         newsId: String,
         title: String? = null,
+        subTitle: String? = null, // Добавляем subTitle
         content: String? = null,
         imageUrl: String? = null,
         additionalPhotos: List<String>? = null
@@ -158,6 +159,7 @@ class HotelRepository(
         try {
             val updates = mutableMapOf<String, Any>()
             title?.let { updates["title"] = it }
+            subTitle?.let { updates["subTitle"] = it } // Поддержка subTitle
             content?.let { updates["content"] = it }
             imageUrl?.let { updates["imageUrl"] = it }
             additionalPhotos?.let { updates["additionalPhotos"] = it }

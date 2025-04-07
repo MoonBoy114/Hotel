@@ -47,7 +47,7 @@ val RivieraOrange = Color(0xFFF58D4D)
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun LoginScreen(viewModel: HotelViewModel, navController: NavHostController) {
+fun LoginScreen(viewModel: HotelViewModel, navController: NavHostController, modifier: Modifier = Modifier) {
     var email by remember { mutableStateOf("") }
     var password by remember { mutableStateOf("") }
     var emailError by remember { mutableStateOf<String?>(null) }
@@ -69,7 +69,7 @@ fun LoginScreen(viewModel: HotelViewModel, navController: NavHostController) {
             modifier = Modifier.padding(bottom = 16.dp)
         ) {
             Image(
-                painter = painterResource(id = R.drawable.logi),
+                painter = painterResource(id = R.drawable.logo_of_riviera),
                 contentDescription = "Riviera Sunrise Resort & Spa Logo",
                 modifier = Modifier
                     .fillMaxWidth()
@@ -229,7 +229,7 @@ fun LoginScreen(viewModel: HotelViewModel, navController: NavHostController) {
     }
 }
 
-// Функция для валидации email
+
 private fun isValidEmail(email: String): Boolean {
     return email.isNotBlank() && android.util.Patterns.EMAIL_ADDRESS.matcher(email).matches()
 }

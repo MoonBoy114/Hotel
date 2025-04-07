@@ -5,9 +5,11 @@ import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.compose.foundation.background
+import androidx.compose.foundation.layout.ExperimentalLayoutApi
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.imeNestedScroll
 import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
@@ -37,14 +39,17 @@ import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
+import androidx.navigation.navArgument
 import com.example.hotel.data.repository.HotelRepository
 import com.example.hotel.data.viewmodel.HotelViewModel
 import com.example.hotel.data.viewmodel.HotelViewModelFactory
+import com.example.hotel.makers.MakerForNews
 import com.example.hotel.screens.HomeScreen
 import com.example.hotel.screens.LoginScreen
 import com.example.hotel.screens.NewsScreen
 import com.example.hotel.screens.ProfileScreen
 import com.example.hotel.screens.RegisterScreen
+
 import com.example.hotel.ui.theme.HotelTheme
 
 class MainActivity : ComponentActivity() {
@@ -83,17 +88,30 @@ fun AppNavigation(navController: NavHostController, viewModel: HotelViewModel) {
         navController = navController,
         startDestination = if (currentUser == null) "login" else "home"
     ) {
-        composable("login") { LoginScreen(viewModel, navController) }
-        composable("register") { RegisterScreen(viewModel, navController) }
+        composable("login") {
+            Scaffold(
+
+            ) { paddingValues ->  LoginScreen(viewModel, navController, Modifier.padding(paddingValues)) }
+        }
+        composable("register") {
+
+            Scaffold(
+                bottomBar = { OrangeNavigationBar(navController)},
+                modifier = Modifier
+                    .fillMaxSize()
+                    .navigationBarsPadding()
+            ) { paddingValues ->
+                RegisterScreen(viewModel, navController, Modifier.padding(paddingValues))
+            }
+        }
         composable("news") {
             Scaffold(
                 bottomBar = { OrangeNavigationBar(navController) },
                 modifier = Modifier
                     .fillMaxSize()
-                    .imePadding()
                     .navigationBarsPadding()
             ) { paddingValues ->
-                NewsScreen(viewModel, Modifier.padding(paddingValues))
+                NewsScreen(viewModel, Modifier.padding(paddingValues),  navController,)
             }
         }
         composable("home") {
@@ -101,7 +119,6 @@ fun AppNavigation(navController: NavHostController, viewModel: HotelViewModel) {
                 bottomBar = { OrangeNavigationBar(navController) },
                 modifier = Modifier
                     .fillMaxSize()
-                    .imePadding()
                     .navigationBarsPadding()
             ) { paddingValues ->
                 HomeScreen(viewModel, Modifier.padding(paddingValues))
@@ -112,26 +129,47 @@ fun AppNavigation(navController: NavHostController, viewModel: HotelViewModel) {
                 bottomBar = { OrangeNavigationBar(navController) },
                 modifier = Modifier
                     .fillMaxSize()
-                    .imePadding()
                     .navigationBarsPadding()
             ) { paddingValues ->
                 ProfileScreen(viewModel, navController, Modifier.padding(paddingValues))
             }
         }
+        composable("makerForNews") {
+            MakerForNews(
+                viewModel = viewModel,
+                navController = navController,
+                newsId = null
+            )
+        }
+
+        composable(
+            route = "makerForNews/{newsId}",
+            arguments = listOf(navArgument("newsId") { nullable = true })
+        ) { backStackEntry ->
+            val newsId = backStackEntry.arguments?.getString("newsId")
+            MakerForNews(
+                viewModel = viewModel,
+                navController = navController,
+                newsId = newsId
+            )
+        }
+
     }
 }
 
+@OptIn(ExperimentalLayoutApi::class)
 @Composable
 fun OrangeNavigationBar(navController: NavHostController) {
     val navBackStackEntry by navController.currentBackStackEntryAsState()
     val currentRoute = navBackStackEntry?.destination?.route
 
     NavigationBar(
-        containerColor = Color(0xFFEA7C27), // Оранжевый цвет
+        containerColor = Color(0xFFF58D4D), // Оранжевый цвет
         modifier = Modifier
             .fillMaxWidth()
-            .background(Color(0xFFEA7C27))
-            .navigationBarsPadding()
+            .background(Color(0xFFF58D4D))
+            .imeNestedScroll()
+
     ) {
         NavigationBarItem(
             icon = {
