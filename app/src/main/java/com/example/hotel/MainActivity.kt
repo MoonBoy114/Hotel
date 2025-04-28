@@ -35,6 +35,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavHostController
+import androidx.navigation.NavType
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.currentBackStackEntryAsState
@@ -43,12 +44,15 @@ import androidx.navigation.navArgument
 import com.example.hotel.data.repository.HotelRepository
 import com.example.hotel.data.viewmodel.HotelViewModel
 import com.example.hotel.data.viewmodel.HotelViewModelFactory
+import com.example.hotel.detailscreens.NewsDetailScreen
 import com.example.hotel.makers.MakerForNews
+import com.example.hotel.makers.MakerForRooms
 import com.example.hotel.screens.HomeScreen
 import com.example.hotel.screens.LoginScreen
 import com.example.hotel.screens.NewsScreen
 import com.example.hotel.screens.ProfileScreen
 import com.example.hotel.screens.RegisterScreen
+import com.example.hotel.screens.RoomScreen
 
 import com.example.hotel.ui.theme.HotelTheme
 
@@ -81,6 +85,11 @@ fun AppNavigation(navController: NavHostController, viewModel: HotelViewModel) {
                 popUpTo(navController.graph.startDestinationId) { inclusive = true }
                 launchSingleTop = true
             }
+        } else {
+            navController.navigate("login") {
+                popUpTo(navController.graph.startDestinationId) { inclusive = true }
+                launchSingleTop = true
+            }
         }
     }
 
@@ -89,20 +98,10 @@ fun AppNavigation(navController: NavHostController, viewModel: HotelViewModel) {
         startDestination = if (currentUser == null) "login" else "home"
     ) {
         composable("login") {
-            Scaffold(
-
-            ) { paddingValues ->  LoginScreen(viewModel, navController, Modifier.padding(paddingValues)) }
+            LoginScreen(viewModel, navController)
         }
         composable("register") {
-
-            Scaffold(
-                bottomBar = { OrangeNavigationBar(navController)},
-                modifier = Modifier
-                    .fillMaxSize()
-                    .navigationBarsPadding()
-            ) { paddingValues ->
-                RegisterScreen(viewModel, navController, Modifier.padding(paddingValues))
-            }
+            RegisterScreen(viewModel, navController)
         }
         composable("news") {
             Scaffold(
@@ -110,8 +109,13 @@ fun AppNavigation(navController: NavHostController, viewModel: HotelViewModel) {
                 modifier = Modifier
                     .fillMaxSize()
                     .navigationBarsPadding()
+
             ) { paddingValues ->
-                NewsScreen(viewModel, Modifier.padding(paddingValues),  navController,)
+                NewsScreen(
+                    viewModel = viewModel,
+                    modifier = Modifier.padding(paddingValues),
+                    navController = navController
+                )
             }
         }
         composable("home") {
@@ -120,8 +124,9 @@ fun AppNavigation(navController: NavHostController, viewModel: HotelViewModel) {
                 modifier = Modifier
                     .fillMaxSize()
                     .navigationBarsPadding()
+                    .imePadding()
             ) { paddingValues ->
-                HomeScreen(viewModel, Modifier.padding(paddingValues))
+                HomeScreen(viewModel, navController,Modifier.padding(paddingValues))
             }
         }
         composable("profile") {
@@ -130,6 +135,7 @@ fun AppNavigation(navController: NavHostController, viewModel: HotelViewModel) {
                 modifier = Modifier
                     .fillMaxSize()
                     .navigationBarsPadding()
+                    .imePadding()
             ) { paddingValues ->
                 ProfileScreen(viewModel, navController, Modifier.padding(paddingValues))
             }
@@ -141,7 +147,6 @@ fun AppNavigation(navController: NavHostController, viewModel: HotelViewModel) {
                 newsId = null
             )
         }
-
         composable(
             route = "makerForNews/{newsId}",
             arguments = listOf(navArgument("newsId") { nullable = true })
@@ -153,7 +158,45 @@ fun AppNavigation(navController: NavHostController, viewModel: HotelViewModel) {
                 newsId = newsId
             )
         }
-
+        composable("newsDetail/{newsId}") { backStackEntry ->
+            val newsId = backStackEntry.arguments?.getString("newsId") ?: ""
+            NewsDetailScreen(
+                viewModel = viewModel,
+                newsId = newsId,
+                navController = navController
+            )
+        }
+        composable("rooms") {
+            Scaffold(
+                bottomBar = { OrangeNavigationBar(navController) },
+                modifier = Modifier
+                    .fillMaxSize()
+                    .navigationBarsPadding()
+            ) { paddingValues ->
+                RoomScreen(
+                    viewModel = viewModel,
+                    navController = navController,
+                    modifier = Modifier.padding(paddingValues)
+                )
+            }
+        }
+        composable("makerForRooms") {
+            MakerForRooms(
+                viewModel = viewModel,
+                navController = navController
+            )
+        }
+        composable(
+            route = "makerForRooms/{roomId}",
+            arguments = listOf(navArgument("roomId") { type = NavType.StringType })
+        ) { backStackEntry ->
+            val roomId = backStackEntry.arguments?.getString("roomId")
+            MakerForRooms(
+                viewModel = viewModel,
+                navController = navController,
+                roomId = roomId
+            )
+        }
     }
 }
 
@@ -164,26 +207,26 @@ fun OrangeNavigationBar(navController: NavHostController) {
     val currentRoute = navBackStackEntry?.destination?.route
 
     NavigationBar(
-        containerColor = Color(0xFFF58D4D), // Оранжевый цвет
+        containerColor = Color(0xFFF58D4D),
         modifier = Modifier
             .fillMaxWidth()
+            .height(60.dp) // Уменьшаем высоту панели
             .background(Color(0xFFF58D4D))
             .imeNestedScroll()
-
     ) {
         NavigationBarItem(
             icon = {
                 Icon(
                     painter = painterResource(id = R.drawable.ic_news),
                     contentDescription = "Новости",
-                    modifier = Modifier.size(30.dp), // Уменьшаем размер иконки до 24dp
+                    modifier = Modifier.size(18.dp), // Уменьшаем размер иконки
                     tint = if (currentRoute == "news") Color.White else Color.White.copy(alpha = 0.7f)
                 )
             },
             label = {
                 Text(
                     text = "Новости",
-                    fontSize = 12.sp // Уменьшаем размер текста до 12sp
+                    fontSize = 10.sp // Уменьшаем размер текста
                 )
             },
             selected = currentRoute == "news",
@@ -206,14 +249,14 @@ fun OrangeNavigationBar(navController: NavHostController) {
                 Icon(
                     painter = painterResource(id = R.drawable.ic_home),
                     contentDescription = "Главная",
-                    modifier = Modifier.size(30.dp), // Уменьшаем размер иконки до 24dp
+                    modifier = Modifier.size(18.dp), // Уменьшаем размер иконки
                     tint = if (currentRoute == "home") Color.White else Color.White.copy(alpha = 0.7f)
                 )
             },
             label = {
                 Text(
                     text = "Главная",
-                    fontSize = 12.sp // Уменьшаем размер текста до 12sp
+                    fontSize = 10.sp // Уменьшаем размер текста
                 )
             },
             selected = currentRoute == "home",
@@ -236,14 +279,14 @@ fun OrangeNavigationBar(navController: NavHostController) {
                 Icon(
                     painter = painterResource(id = R.drawable.ic_profile),
                     contentDescription = "Профиль",
-                    modifier = Modifier.size(30.dp), // Уменьшаем размер иконки до 24dp
+                    modifier = Modifier.size(18.dp), // Уменьшаем размер иконки
                     tint = if (currentRoute == "profile") Color.White else Color.White.copy(alpha = 0.7f)
                 )
             },
             label = {
                 Text(
                     text = "Профиль",
-                    fontSize = 12.sp // Уменьшаем размер текста до 12sp
+                    fontSize = 10.sp // Уменьшаем размер текста
                 )
             },
             selected = currentRoute == "profile",

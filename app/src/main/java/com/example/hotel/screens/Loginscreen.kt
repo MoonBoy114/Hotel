@@ -45,9 +45,11 @@ import kotlinx.coroutines.delay
 
 val RivieraOrange = Color(0xFFF58D4D)
 
+
+
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun LoginScreen(viewModel: HotelViewModel, navController: NavHostController, modifier: Modifier = Modifier) {
+fun LoginScreen(viewModel: HotelViewModel, navController: NavHostController) {
     var email by remember { mutableStateOf("") }
     var password by remember { mutableStateOf("") }
     var emailError by remember { mutableStateOf<String?>(null) }
@@ -63,7 +65,6 @@ fun LoginScreen(viewModel: HotelViewModel, navController: NavHostController, mod
         verticalArrangement = Arrangement.Center,
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
-
         Column(
             horizontalAlignment = Alignment.CenterHorizontally,
             modifier = Modifier.padding(bottom = 16.dp)
@@ -76,16 +77,12 @@ fun LoginScreen(viewModel: HotelViewModel, navController: NavHostController, mod
                     .height(100.dp)
                     .padding(bottom = 16.dp)
             )
-
-
         }
-
-
 
         TextField(
             value = email,
             onValueChange = { newValue ->
-                email = newValue
+                email = newValue.trim() // Удаляем пробелы
                 emailError = if (newValue.isBlank()) {
                     null
                 } else if (isValidEmail(newValue)) {
@@ -134,7 +131,7 @@ fun LoginScreen(viewModel: HotelViewModel, navController: NavHostController, mod
         TextField(
             value = password,
             onValueChange = { newValue ->
-                password = newValue
+                password = newValue.trim() // Удаляем пробелы
                 passwordError = if (newValue.isBlank()) {
                     null
                 } else if (newValue.length < 5 || newValue.length > 20) {
@@ -155,8 +152,8 @@ fun LoginScreen(viewModel: HotelViewModel, navController: NavHostController, mod
                 unfocusedLabelColor = Color.White,
                 errorLabelColor = Color.White,
                 cursorColor = Color.White,
-                focusedIndicatorColor = Color.White,
-                unfocusedIndicatorColor = Color.White,
+                focusedIndicatorColor = Color.Transparent,
+                unfocusedIndicatorColor = Color.Transparent,
                 errorIndicatorColor = Color.Transparent
             ),
             modifier = Modifier.fillMaxWidth(),
@@ -199,7 +196,7 @@ fun LoginScreen(viewModel: HotelViewModel, navController: NavHostController, mod
                     viewModel.loginUser(email, password)
                 } else {
                     if (email.isBlank()) emailError = "Поле email не может быть пустым"
-                    if (password.isBlank()) viewModel.setErrorMessage("Поле пароля не может быть пустым")
+                    if (password.isBlank()) passwordError = "Поле пароля не может быть пустым"
                 }
             },
             colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFFF9B40)),
@@ -211,7 +208,10 @@ fun LoginScreen(viewModel: HotelViewModel, navController: NavHostController, mod
             Text("Войти")
         }
 
-        TextButton(onClick = { navController.navigate("register") }, colors = ButtonDefaults.textButtonColors(contentColor = Color.White)) {
+        TextButton(
+            onClick = { navController.navigate("register") },
+            colors = ButtonDefaults.textButtonColors(contentColor = Color.White)
+        ) {
             Text("Нет аккаунта? Зарегистрироваться")
         }
 
@@ -228,7 +228,6 @@ fun LoginScreen(viewModel: HotelViewModel, navController: NavHostController, mod
         }
     }
 }
-
 
 private fun isValidEmail(email: String): Boolean {
     return email.isNotBlank() && android.util.Patterns.EMAIL_ADDRESS.matcher(email).matches()

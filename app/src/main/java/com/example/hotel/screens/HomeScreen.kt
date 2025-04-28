@@ -21,6 +21,7 @@ import androidx.compose.material3.Card
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
+import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -34,6 +35,7 @@ import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.navigation.NavHostController
 import com.example.hotel.R
 import com.example.hotel.data.viewmodel.HotelViewModel
 
@@ -41,54 +43,58 @@ import com.example.hotel.data.viewmodel.HotelViewModel
 data class Category(val imageRes: Int, val title: String)
 
 @Composable
-fun HomeScreen(viewModel: HotelViewModel, modifier: Modifier = Modifier) {
+fun HomeScreen(viewModel: HotelViewModel, navController: NavHostController, modifier: Modifier = Modifier) {
     val currentUser by viewModel.currentUser.observeAsState()
     val userRole = currentUser?.role ?: "Guest"
-    LazyColumn(
-            modifier = Modifier
-                .fillMaxSize()
-                .background(Color(0xFFF5F5F5))
-                .padding(top = 22.dp),
 
-
-
-        ) {
-            item {
-                Box(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .background(Color(0xFFF58D4D))
-
-
-                    ) {
+    Scaffold(
+        topBar = {
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .background(Color(0xFFF58D4D))
+                    .padding(vertical = 5.dp) // Отступы для логотипа и иконки
+            ) {
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.SpaceBetween
+                ) {
                     Image(
                         painter = painterResource(id = R.drawable.logo_of_riviera),
                         contentDescription = "Logo",
-                        modifier = Modifier.height(50.dp)
+                        modifier = Modifier
+                            .height(30.dp)
+                            .padding(start = 16.dp) // Отступ слева для логотипа
                     )
-
-
                     Icon(
                         painter = painterResource(id = R.drawable.info_icon),
                         contentDescription = "About",
-                        modifier = Modifier.height(40.dp)
-                            .padding(start = 370.dp, top = 10.dp)
+                        modifier = Modifier
+                            .size(40.dp)
+                            .padding(end = 16.dp) // Отступ справа для иконки
                             .clickable { },
-                        tint = Color.White,
-
-
-                        )
-
-
+                        tint = Color.White
+                    )
                 }
-                Spacer(Modifier.height(60.dp))
             }
-
-
+        },
+        modifier = modifier
+            .fillMaxSize()
+            .background(Color(0xFFF5F5F5))
+    ) { paddingValues ->
+        LazyColumn(
+            modifier = Modifier
+                .fillMaxSize()
+                .background(Color(0xFFF5F5F5))
+                .padding(paddingValues) // Учитываем отступы от topBar
+        ) {
             item {
+                Spacer(Modifier.height(16.dp)) // Отступ сверху после topBar
                 if (userRole == "Guest") {
                     Row(
-                        modifier = Modifier.fillMaxWidth()
+                        modifier = Modifier
+                            .fillMaxWidth()
                             .padding(vertical = 10.dp),
                         verticalAlignment = Alignment.CenterVertically,
                         horizontalArrangement = Arrangement.Center
@@ -98,8 +104,6 @@ fun HomeScreen(viewModel: HotelViewModel, modifier: Modifier = Modifier) {
                             fontSize = 20.sp,
                             fontWeight = FontWeight.Bold,
                         )
-
-
                     }
                     Spacer(Modifier.height(80.dp))
                 } else {
@@ -110,10 +114,8 @@ fun HomeScreen(viewModel: HotelViewModel, modifier: Modifier = Modifier) {
                         verticalAlignment = Alignment.CenterVertically,
                         horizontalArrangement = Arrangement.Center
                     ) {
-
                         IconButton(
                             onClick = { }
-
                         ) {
                             Icon(
                                 painter = painterResource(id = R.drawable.add_icon),
@@ -122,7 +124,6 @@ fun HomeScreen(viewModel: HotelViewModel, modifier: Modifier = Modifier) {
                                 tint = Color(0xFFF58D4D)
                             )
                         }
-
                     }
                     Spacer(Modifier.height(15.dp))
                     Row(
@@ -131,22 +132,16 @@ fun HomeScreen(viewModel: HotelViewModel, modifier: Modifier = Modifier) {
                             .padding(horizontal = 16.dp),
                         verticalAlignment = Alignment.CenterVertically,
                         horizontalArrangement = Arrangement.Center
-
-                    )
-
-                    {
+                    ) {
                         Text(
                             text = "ДОБАВЬТЕ СВОЮ ПЕРВУЮ АКЦИЮ!",
-                            fontSize = 19.sp,
+                            fontSize = 15.sp,
                             fontWeight = FontWeight.Bold,
-
-                            )
-
+                        )
                     }
                     Spacer(Modifier.height(40.dp))
                 }
             }
-
 
             val categories = listOf(
                 Category(R.drawable.restoran, "Рестораны"),
@@ -155,26 +150,29 @@ fun HomeScreen(viewModel: HotelViewModel, modifier: Modifier = Modifier) {
                 Category(R.drawable.animations, "Анимации"),
                 Category(R.drawable.taxi, "Трансфер"),
                 Category(R.drawable.spa_image, "SPA")
-
             )
 
             items(categories.chunked(2)) { categoryPair ->
                 Row(
-                    modifier = Modifier.fillMaxWidth()
-                        .padding(horizontal = 16.dp),
-                    horizontalArrangement = Arrangement.spacedBy(16.dp)
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 14.dp),
+                    horizontalArrangement = Arrangement.spacedBy(10.dp)
                 ) {
                     categoryPair.forEach { category ->
                         Box(
                             modifier = Modifier
                                 .clip(RoundedCornerShape(topStart = 30.dp, topEnd = 30.dp, bottomEnd = 5.dp, bottomStart = 5.dp))
                                 .weight(1f)
-
-
                         ) {
                             CategoryItem(
                                 imageRes = category.imageRes,
-                                title = category.title
+                                title = category.title,
+                                onClick = {
+                                    if (category.title == "Номера") {
+                                        navController.navigate("rooms")
+                                    }
+                                }
                             )
                         }
                     }
@@ -185,18 +183,18 @@ fun HomeScreen(viewModel: HotelViewModel, modifier: Modifier = Modifier) {
                 }
                 Spacer(modifier = Modifier.height(16.dp))
             }
-
         }
     }
-
+}
 
 @Composable
-fun CategoryItem(imageRes: Int, title: String) {
+fun CategoryItem(imageRes: Int, title: String, onClick: () -> Unit) {
     Column(
         modifier = Modifier
             .fillMaxSize()
-            .clickable { }
-            .padding(8.dp)
+            .clickable ( onClick = onClick,)
+
+            .padding(5.dp)
     ) {
         // Изображение
         Image(
@@ -204,16 +202,16 @@ fun CategoryItem(imageRes: Int, title: String) {
             contentDescription = title,
             modifier = Modifier
                 .fillMaxWidth()
-                .height(100.dp) // Фиксированная высота для изображения
-                .clip(RoundedCornerShape(topStart = 30.dp, topEnd = 30.dp, bottomStart = 5.dp, bottomEnd = 5.dp)), // Закругление только сверху
-            contentScale = ContentScale.Crop // Масштабирование изображения
+                .height(100.dp)
+                .clip(RoundedCornerShape(topStart = 30.dp, topEnd = 30.dp, bottomStart = 5.dp, bottomEnd = 5.dp)),
+            contentScale = ContentScale.Crop
         )
 
         // Текст и иконка
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(horizontal = 8.dp, vertical = 8.dp), // Отступы для текста и иконки
+                .padding(horizontal = 8.dp, vertical = 8.dp),
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.SpaceBetween
         ) {

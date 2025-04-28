@@ -65,7 +65,7 @@ val Monst = FontFamily(
 )
 
 @Composable
-fun RegisterScreen(viewModel: HotelViewModel, navController: NavHostController, modifier: Modifier = Modifier) {
+fun RegisterScreen(viewModel: HotelViewModel, navController: NavHostController) {
     var name by remember { mutableStateOf("") }
     var email by remember { mutableStateOf("") }
     var phone by remember { mutableStateOf(TextFieldValue("")) } // Храним только цифры
@@ -334,30 +334,66 @@ fun RegisterScreen(viewModel: HotelViewModel, navController: NavHostController, 
 
         Button(
             onClick = {
+                println("Кнопка 'Зарегистрироваться' нажата")
+                println(
+                    "Условия: name.isNotBlank=${name.isNotBlank()}, email.isNotBlank=${email.isNotBlank()}, " +
+                            "phone.text.isNotBlank=${phone.text.isNotBlank()}, password.isNotBlank=${password.isNotBlank()}"
+                )
+                println("Ошибки: nameError=$nameError, emailError=$emailError, phoneError=$phoneError, passwordError=$passwordError")
+
                 if (nameError == null && emailError == null && phoneError == null && passwordError == null &&
                     name.isNotBlank() && email.isNotBlank() && phone.text.isNotBlank() && password.isNotBlank()
                 ) {
-
+                    println("Условие выполнено, начинаем регистрацию")
                     viewModel.viewModelScope.launch {
-                        val emailTaken = viewModel.isEmailTaken(email)
-                        val phoneTaken = viewModel.isPhoneTaken("+7${phone.text}")
-
-                        if (emailTaken) {
-                            emailExists = true
-                        }
-                        if (phoneTaken) {
-                            phoneExists = true
-                        }
-
-                        if (!emailTaken && !phoneTaken) {
-                            viewModel.registerUser(name, email, "+7${phone.text}", password)
+                        println("Проверка email: $email")
+                        val emailResult = viewModel.isEmailTaken(email)
+                        emailResult.onSuccess { emailTaken ->
+                            println("Email занят: $emailTaken")
+                            if (emailTaken) {
+                                emailExists = true
+                            } else {
+                                println("Проверка телефона: +7${phone.text}")
+                                val phoneResult = viewModel.isPhoneTaken("+7${phone.text}")
+                                phoneResult.onSuccess { phoneTaken ->
+                                    println("Телефон занят: $phoneTaken")
+                                    if (phoneTaken) {
+                                        phoneExists = true
+                                    } else {
+                                        println("Регистрация пользователя: $name, $email, +7${phone.text}")
+                                        viewModel.registerUser(
+                                            name,
+                                            email,
+                                            "+7${phone.text}",
+                                            password
+                                        )
+                                    }
+                                }.onFailure { e ->
+                                    viewModel.setErrorMessage("Ошибка проверки телефона: ${e.message}")
+                                }
+                            }
+                        }.onFailure { e ->
+                            viewModel.setErrorMessage("Ошибка проверки email: ${e.message}")
                         }
                     }
                 } else {
-                    if (name.isBlank()) nameError = "Поле имени не может быть пустым"
-                    if (email.isBlank()) emailError = "Поле email не может быть пустым"
-                    if (phone.text.isBlank()) phoneError = "Поле телефона не может быть пустым"
-                    if (password.isBlank()) viewModel.setErrorMessage("Поле пароля не может быть пустым")
+                    println("Условие не выполнено, проверяем поля")
+                    if (name.isBlank()) {
+                        nameError = "Поле имени не может быть пустым"
+                        println("Ошибка: Поле имени пустое")
+                    }
+                    if (email.isBlank()) {
+                        emailError = "Поле email не может быть пустым"
+                        println("Ошибка: Поле email пустое")
+                    }
+                    if (phone.text.isBlank()) {
+                        phoneError = "Поле телефона не может быть пустым"
+                        println("Ошибка: Поле телефона пустое")
+                    }
+                    if (password.isBlank()) {
+                        viewModel.setErrorMessage("Поле пароля не может быть пустым")
+                        println("Ошибка: Поле пароля пустое")
+                    }
                 }
             },
             colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFFF9B40)),
@@ -367,21 +403,6 @@ fun RegisterScreen(viewModel: HotelViewModel, navController: NavHostController, 
                     nameError == null && emailError == null && phoneError == null && passwordError == null
         ) {
             Text("Зарегистрироваться")
-        }
-
-        TextButton(
-            onClick = { navController.navigate("login") },
-            colors = ButtonDefaults.textButtonColors(contentColor = Color.White)
-        ) {
-            Text("Уже есть аккаунт? Войти")
-        }
-
-        errorMessage?.let {
-            Text(it, color = MaterialTheme.colorScheme.error)
-            LaunchedEffect(it) {
-                delay(3000)
-                viewModel.clearError()
-            }
         }
     }
 }

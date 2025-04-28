@@ -16,6 +16,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
@@ -32,103 +33,82 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.scale
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.navigation.NavHostController
+import coil.compose.AsyncImage
 import com.example.hotel.R
 import com.example.hotel.data.viewmodel.HotelViewModel
 
 
 
-var money: Double = 1000.0
+var money: Double = 100000.0
+
 @Composable
 fun ProfileScreen(viewModel: HotelViewModel, navController: NavHostController, modifier: Modifier = Modifier) {
-//    Column(
-//        modifier = Modifier.fillMaxSize(),
-//        verticalArrangement = Arrangement.Center,
-//        horizontalAlignment = Alignment.CenterHorizontally
-//    ) {
-//        Text("Профиль", style = MaterialTheme.typography.headlineMedium)
-//        Spacer(modifier = Modifier.height(10.dp))
-//        Button(onClick = {
-//            viewModel.logout()
-//            navController.navigate("login") {
-//                popUpTo(navController.graph.startDestinationId) { inclusive = true }
-//            }
-//        }) {
-//            Text("Выйти")
-//        }
-//    }
     val currentUser by viewModel.currentUser.observeAsState()
+    val bookings by viewModel.bookings.observeAsState(emptyList())
+    val rooms by viewModel.rooms.observeAsState(emptyList())
 
     val currentName = currentUser?.name
-
 
     LazyColumn(
         modifier = Modifier
             .fillMaxSize()
             .background(Color(0xFFF5F5F5))
-            .padding(top = 22.dp),
-
-
+            .padding(top = 25.dp),
     ) {
         item {
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
                     .background(Color(0xFFF58D4D))
-
-
-                ) {
+            ) {
                 Image(
                     painter = painterResource(id = R.drawable.logo_of_riviera),
                     contentDescription = "Logo",
-                    modifier = Modifier.height(50.dp)
+                    modifier = Modifier.height(30.dp)
                 )
-
 
                 Icon(
                     painter = painterResource(id = R.drawable.info_icon),
                     contentDescription = "About",
-                    modifier = Modifier.height(40.dp)
+                    modifier = Modifier
+                        .height(40.dp)
                         .padding(start = 370.dp, top = 10.dp)
                         .clickable { },
                     tint = Color.White,
-
-
-                    )
-
-
+                )
             }
             Spacer(Modifier.height(20.dp))
         }
 
         item {
             Row(
-                modifier = Modifier.fillMaxWidth()
+                modifier = Modifier
+                    .fillMaxWidth()
                     .padding(16.dp),
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.Center
             ) {
                 IconButton(
-                    onClick = {
-
-                    },
+                    onClick = {},
                     modifier = Modifier.size(140.dp)
                 ) {
                     Icon(
                         painter = painterResource(id = R.drawable.icon_profile),
                         contentDescription = "profile icon",
                         tint = Color(0xFFF58D4D)
-
                     )
                 }
             }
 
             Row(
-                modifier = Modifier.fillMaxWidth()
+                modifier = Modifier
+                    .fillMaxWidth()
                     .padding(16.dp),
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.Center
@@ -140,7 +120,6 @@ fun ProfileScreen(viewModel: HotelViewModel, navController: NavHostController, m
                         fontWeight = FontWeight.Bold
                     )
                 }
-
             }
         }
 
@@ -149,47 +128,31 @@ fun ProfileScreen(viewModel: HotelViewModel, navController: NavHostController, m
                 modifier = Modifier
                     .fillMaxWidth()
                     .padding(16.dp)
-                    .background(Color.White, RoundedCornerShape( // Фон со скруглением
-                        topStart = 10.dp,
-                        topEnd = 10.dp,
-                        bottomEnd = 10.dp,
-                        bottomStart = 10.dp
-                    ))
-                    .clickable {
-
-                    },
+                    .background(Color.White, RoundedCornerShape(10.dp))
+                    .clickable {},
                 verticalAlignment = Alignment.CenterVertically
-
-
-
             ) {
-                    Image(
-                        painter = painterResource(id = R.drawable.small_profile),
-                        contentDescription = "small profile",
-                        modifier = Modifier.padding(8.dp).size(30.dp)
-                    )
+                Image(
+                    painter = painterResource(id = R.drawable.small_profile),
+                    contentDescription = "small profile",
+                    modifier = Modifier.padding(8.dp).size(30.dp)
+                )
 
-                    Text(
+                Text(
                     text = "Мои данные",
                     fontSize = 18.sp,
                     fontWeight = FontWeight.Bold
-
+                )
+                IconButton(
+                    onClick = {},
+                    modifier = Modifier.padding(start = 140.dp).size(25.dp)
+                ) {
+                    Icon(
+                        painter = painterResource(id = R.drawable.right_arrow),
+                        contentDescription = "right arrow",
+                        tint = Color(0xFFF58D4D)
                     )
-                    IconButton(
-                        onClick = {
-
-                        },
-                        modifier = Modifier.padding(start = 190.dp).size(25.dp)
-                    ) {
-                       Icon(
-                           painter = painterResource(id = R.drawable.right_arrow),
-                           contentDescription = "right arrow",
-                           tint = Color(0xFFF58D4D)
-
-                       )
-                    }
-
-
+                }
             }
         }
 
@@ -206,7 +169,6 @@ fun ProfileScreen(viewModel: HotelViewModel, navController: NavHostController, m
                     modifier = Modifier
                         .padding(vertical = 12.dp, horizontal = 16.dp)
                 ) {
-                    // Первая строка: "RS Кошелёк" и стрелка
                     Row(
                         verticalAlignment = Alignment.CenterVertically
                     ) {
@@ -227,7 +189,6 @@ fun ProfileScreen(viewModel: HotelViewModel, navController: NavHostController, m
                         )
                     }
 
-                    // Вторая строка: сумма
                     Text(
                         text = "${money.toInt()} ₽",
                         fontSize = 18.sp,
@@ -237,9 +198,8 @@ fun ProfileScreen(viewModel: HotelViewModel, navController: NavHostController, m
                     )
                 }
 
-
                 Button(
-                    onClick = {  },
+                    onClick = { /* Пополнение кошелька */ },
                     modifier = Modifier
                         .height(36.dp)
                         .padding(end = 16.dp),
@@ -256,7 +216,6 @@ fun ProfileScreen(viewModel: HotelViewModel, navController: NavHostController, m
             }
         }
 
-
         item {
             Spacer(Modifier.height(16.dp))
         }
@@ -270,23 +229,91 @@ fun ProfileScreen(viewModel: HotelViewModel, navController: NavHostController, m
                     .padding(vertical = 16.dp, horizontal = 16.dp)
             ) {
                 Text(
-                    text = "Ваши брони",
+                    text = "Ваши бронирования",
                     fontSize = 18.sp,
                     fontWeight = FontWeight.Bold,
                     color = Color.Black
                 )
 
-                Text(
-                    text = "Тут отобразятся бронирования пользователя",
-                    fontSize = 14.sp,
-                    fontWeight = FontWeight.Normal,
-                    color = Color(0xFF666666),
-                    modifier = Modifier.padding(top = 4.dp)
-                )
+                if (bookings.isEmpty()) {
+                    Text(
+                        text = "Тут отобразятся бронирования пользователя",
+                        fontSize = 14.sp,
+                        fontWeight = FontWeight.Normal,
+                        color = Color(0xFF666666),
+                        modifier = Modifier.padding(top = 4.dp)
+                    )
+                }
             }
         }
 
-        // Spacer для визуального разделения
+        // Отображение бронирований
+        items(bookings) { booking ->
+            val room = rooms.find { it.roomId == booking.roomId }
+            if (room != null) {
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 16.dp, vertical = 8.dp)
+                        .background(Color.White, RoundedCornerShape(10.dp))
+                        .padding(10.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    AsyncImage(
+                        model = room.imageUrl,
+                        contentDescription = "Room Image",
+                        modifier = Modifier
+                            .size(100.dp)
+                            .clip(RoundedCornerShape(10.dp)),
+                        contentScale = ContentScale.Crop
+                    )
+
+                    Column(
+                        modifier = Modifier
+                            .padding(start = 16.dp)
+                            .weight(1f)
+                    ) {
+                        Text(
+                            text = "${room.type} ${room.name}",
+                            fontSize = 16.sp,
+                            fontWeight = FontWeight.Bold,
+                            color = Color.Black
+                        )
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            modifier = Modifier.padding(top = 4.dp)
+                        ) {
+                            Icon(
+                                painter = painterResource(id = R.drawable.icon_profile),
+                                contentDescription = "Capacity",
+                                tint = Color(0xFF666666),
+                                modifier = Modifier.size(16.dp)
+                            )
+                            Text(
+                                text = "${room.capacity} чел",
+                                fontSize = 14.sp,
+                                color = Color(0xFF666666),
+                                modifier = Modifier.padding(start = 4.dp)
+                            )
+                        }
+                        Text(
+                            text = "${booking.totalPrice.toInt()} ₽",
+                            fontSize = 16.sp,
+                            fontWeight = FontWeight.Bold,
+                            color = Color.Black,
+                            modifier = Modifier.padding(top = 4.dp)
+                        )
+                        Text(
+                            text = "Забронировано до ${booking.checkOutDate}",
+                            fontSize = 14.sp,
+                            color = Color(0xFF666666),
+                            modifier = Modifier.padding(top = 4.dp)
+                        )
+                    }
+                }
+            }
+        }
+
         item {
             Spacer(Modifier.height(16.dp))
         }
@@ -298,7 +325,6 @@ fun ProfileScreen(viewModel: HotelViewModel, navController: NavHostController, m
                     .padding(horizontal = 16.dp)
                     .background(Color.White, RoundedCornerShape(10.dp))
             ) {
-                // Настройки
                 Row(
                     modifier = Modifier
                         .fillMaxWidth()
@@ -330,16 +356,14 @@ fun ProfileScreen(viewModel: HotelViewModel, navController: NavHostController, m
                     )
                 }
 
-                // Разделитель
                 Box(
                     modifier = Modifier
                         .fillMaxWidth()
                         .height(1.dp)
                         .padding(horizontal = 16.dp)
-                        .background(Color(0xFFE0E0E0)) // Серый цвет для разделителя
+                        .background(Color(0xFFE0E0E0))
                 )
 
-                // Поддержка
                 Row(
                     modifier = Modifier
                         .fillMaxWidth()
@@ -373,11 +397,8 @@ fun ProfileScreen(viewModel: HotelViewModel, navController: NavHostController, m
             }
         }
 
-        // Spacer для визуального разделения
         item {
-            Spacer(Modifier.height(16.dp))
+            Spacer(Modifier.height(95.dp))
         }
-
-
     }
 }
