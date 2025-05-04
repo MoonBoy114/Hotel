@@ -2,30 +2,40 @@ package com.example.hotel.screens
 
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
-import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.wrapContentHeight
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material3.Card
-import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.MoreVert
+import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.DropdownMenu
+import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.livedata.observeAsState
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -36,7 +46,9 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.navigation.NavHostController
+import coil.compose.AsyncImage
 import com.example.hotel.R
+import com.example.hotel.data.Service
 import com.example.hotel.data.viewmodel.HotelViewModel
 
 
@@ -46,6 +58,7 @@ data class Category(val imageRes: Int, val title: String)
 fun HomeScreen(viewModel: HotelViewModel, navController: NavHostController, modifier: Modifier = Modifier) {
     val currentUser by viewModel.currentUser.observeAsState()
     val userRole = currentUser?.role ?: "Guest"
+    val services by viewModel.services.observeAsState(emptyList())
 
     Scaffold(
         topBar = {
@@ -53,7 +66,7 @@ fun HomeScreen(viewModel: HotelViewModel, navController: NavHostController, modi
                 modifier = Modifier
                     .fillMaxWidth()
                     .background(Color(0xFFF58D4D))
-                    .padding(vertical = 5.dp) // Отступы для логотипа и иконки
+                    .padding(vertical = 5.dp)
             ) {
                 Row(
                     modifier = Modifier.fillMaxWidth(),
@@ -65,14 +78,14 @@ fun HomeScreen(viewModel: HotelViewModel, navController: NavHostController, modi
                         contentDescription = "Logo",
                         modifier = Modifier
                             .height(30.dp)
-                            .padding(start = 16.dp) // Отступ слева для логотипа
+                            .padding(start = 16.dp)
                     )
                     Icon(
                         painter = painterResource(id = R.drawable.info_icon),
                         contentDescription = "About",
                         modifier = Modifier
                             .size(40.dp)
-                            .padding(end = 16.dp) // Отступ справа для иконки
+                            .padding(end = 16.dp)
                             .clickable { },
                         tint = Color.White
                     )
@@ -87,11 +100,11 @@ fun HomeScreen(viewModel: HotelViewModel, navController: NavHostController, modi
             modifier = Modifier
                 .fillMaxSize()
                 .background(Color(0xFFF5F5F5))
-                .padding(paddingValues) // Учитываем отступы от topBar
+                .padding(paddingValues)
         ) {
             item {
-                Spacer(Modifier.height(16.dp)) // Отступ сверху после topBar
-                if (userRole == "Guest") {
+                Spacer(Modifier.height(16.dp))
+                if (userRole == "Guest" && services.isEmpty()) {
                     Row(
                         modifier = Modifier
                             .fillMaxWidth()
@@ -106,43 +119,61 @@ fun HomeScreen(viewModel: HotelViewModel, navController: NavHostController, modi
                         )
                     }
                     Spacer(Modifier.height(80.dp))
-                } else {
-                    Row(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(horizontal = 3.dp),
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.Center
-                    ) {
-                        IconButton(
-                            onClick = { }
-                        ) {
-                            Icon(
-                                painter = painterResource(id = R.drawable.add_icon),
-                                contentDescription = "Add",
-                                modifier = Modifier.size(100.dp),
-                                tint = Color(0xFFF58D4D)
-                            )
-                        }
-                    }
-                    Spacer(Modifier.height(15.dp))
-                    Row(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(horizontal = 16.dp),
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.Center
-                    ) {
-                        Text(
-                            text = "ДОБАВЬТЕ СВОЮ ПЕРВУЮ АКЦИЮ!",
-                            fontSize = 15.sp,
-                            fontWeight = FontWeight.Bold,
-                        )
-                    }
-                    Spacer(Modifier.height(40.dp))
                 }
             }
 
+            // Список акций с горизонтальной прокруткой
+            if (userRole != "Guest" || services.isNotEmpty()) {
+                item {
+                    LazyRow(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(horizontal = 14.dp),
+                        horizontalArrangement = Arrangement.spacedBy(10.dp)
+                    ) {
+                        items(services) { service ->
+                            Box(
+                                modifier = Modifier
+                                    .width(310.dp)
+                                    .background(Color.White, RoundedCornerShape(topStart = 30.dp, topEnd = 30.dp, bottomEnd = 20.dp, bottomStart = 20.dp))
+                                    .clip(RoundedCornerShape(topStart = 30.dp, topEnd = 30.dp, bottomEnd = 20.dp, bottomStart = 20.dp))
+                            ) {
+                                ServiceItem(
+                                    service = service,
+                                    userRole = userRole,
+                                    onEdit = { navController.navigate("makerForService/${service.serviceId}") },
+                                    onDelete = { viewModel.deleteService(service.serviceId) },
+                                    onClick = { navController.navigate("serviceDetail/${service.serviceId}") }
+
+                                )
+                            }
+                        }
+
+                        // Добавляем кнопку "+" в конец списка для Manager
+                        if (userRole == "Manager") {
+                            item {
+                                IconButton(
+                                    onClick = { navController.navigate("makerForService") },
+                                    modifier = Modifier
+                                        .clip(RoundedCornerShape(topStart = 30.dp, topEnd = 30.dp, bottomEnd = 5.dp, bottomStart = 5.dp))
+                                        .width(80.dp)
+                                        .height(132.dp)
+                                ) {
+                                    Icon(
+                                        painter = painterResource(id = R.drawable.add_icon),
+                                        contentDescription = "Add",
+                                        modifier = Modifier.size(40.dp),
+                                        tint = Color(0xFFF58D4D)
+                                    )
+                                }
+                            }
+                        }
+                    }
+                    Spacer(Modifier.height(16.dp))
+                }
+            }
+
+            // Список категорий
             val categories = listOf(
                 Category(R.drawable.restoran, "Рестораны"),
                 Category(R.drawable.room, "Номера"),
@@ -157,7 +188,7 @@ fun HomeScreen(viewModel: HotelViewModel, navController: NavHostController, modi
                     modifier = Modifier
                         .fillMaxWidth()
                         .padding(horizontal = 14.dp),
-                    horizontalArrangement = Arrangement.spacedBy(10.dp)
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
                     categoryPair.forEach { category ->
                         Box(
@@ -181,7 +212,7 @@ fun HomeScreen(viewModel: HotelViewModel, navController: NavHostController, modi
                         Spacer(modifier = Modifier.weight(1f))
                     }
                 }
-                Spacer(modifier = Modifier.height(16.dp))
+                Spacer(modifier = Modifier.height(10.dp))
             }
         }
     }
@@ -192,22 +223,19 @@ fun CategoryItem(imageRes: Int, title: String, onClick: () -> Unit) {
     Column(
         modifier = Modifier
             .fillMaxSize()
-            .clickable ( onClick = onClick,)
-
+            .clickable(onClick = onClick)
             .padding(5.dp)
     ) {
-        // Изображение
         Image(
             painter = painterResource(id = imageRes),
             contentDescription = title,
             modifier = Modifier
                 .fillMaxWidth()
-                .height(100.dp)
+                .height(85.dp)
                 .clip(RoundedCornerShape(topStart = 30.dp, topEnd = 30.dp, bottomStart = 5.dp, bottomEnd = 5.dp)),
             contentScale = ContentScale.Crop
         )
 
-        // Текст и иконка
         Row(
             modifier = Modifier
                 .fillMaxWidth()
@@ -229,5 +257,168 @@ fun CategoryItem(imageRes: Int, title: String, onClick: () -> Unit) {
                 tint = Color(0xFFF58D4D)
             )
         }
+    }
+}
+
+@Composable
+fun ServiceItem(
+    service: Service,
+    userRole: String,
+    onEdit: () -> Unit,
+    onDelete: () -> Unit,
+    onClick: () -> Unit
+) {
+    var expanded by remember { mutableStateOf(false) }
+    var showDeleteDialog by remember { mutableStateOf(false) } // Состояние для диалога подтверждения
+    val hasSubtitle = service.subTitle.isNotEmpty()
+
+    Column(
+        modifier = Modifier
+            .fillMaxSize()
+            .clickable(onClick = onClick)
+    ) {
+        Box(
+            modifier = Modifier
+                .fillMaxWidth()
+        ) {
+            AsyncImage(
+                model = service.imageUrl,
+                contentDescription = service.name,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(105.dp)
+                    .clip(RoundedCornerShape(topStart = 30.dp, topEnd = 30.dp, bottomStart = 5.dp, bottomEnd = 5.dp)),
+                contentScale = ContentScale.Crop,
+                onError = { /* Обработка ошибки загрузки изображения */ }
+            )
+
+            if (userRole == "Manager") {
+                Box(
+                    modifier = Modifier
+                        .align(Alignment.TopEnd)
+                        .padding(2.dp)
+                ) {
+                    IconButton(onClick = { expanded = true }) {
+                        Icon(
+                            imageVector = Icons.Default.MoreVert,
+                            tint = Color.White,
+                            modifier = Modifier
+                                .background(
+                                    Color.White.copy(alpha = 0.3f),
+                                    RoundedCornerShape(30.dp)
+                                )
+                                .size(25.dp),
+                            contentDescription = "More"
+                        )
+                    }
+                    DropdownMenu(
+                        expanded = expanded,
+                        onDismissRequest = { expanded = false },
+                        modifier = Modifier.background(Color.White)
+                    ) {
+                        DropdownMenuItem(
+                            text = { Text("Изменить", color = Color(0xFFF58D4D)) },
+                            onClick = {
+                                expanded = false
+                                onEdit()
+                            }
+                        )
+                        DropdownMenuItem(
+                            text = { Text("Удалить", color = Color.Red) },
+                            onClick = {
+                                expanded = false
+                                showDeleteDialog = true // Показываем диалог вместо немедленного удаления
+                            }
+                        )
+                    }
+                }
+            }
+        }
+
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 8.dp, vertical = 8.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.SpaceBetween
+        ) {
+            Column(
+                modifier = Modifier
+                    .weight(1f)
+            ) {
+                Text(
+                    text = service.name.uppercase(),
+                    fontSize = 16.sp,
+                    fontWeight = FontWeight.Bold,
+                    color = Color.Black,
+                    modifier = Modifier
+                        .height(20.dp)
+                        .padding(start = 5.dp)
+                )
+                Spacer(modifier = Modifier.height(5.dp))
+                Text(
+                    text = service.subTitle ?: "",
+                    fontSize = 14.sp,
+                    fontWeight = FontWeight.Normal,
+                    color = Color.Gray,
+                    modifier = Modifier
+                        .height(30.dp)
+                        .padding(start = 5.dp)
+                )
+            }
+
+            Icon(
+                painter = painterResource(id = R.drawable.bold_right_arrow),
+                contentDescription = "Arrow",
+                modifier = Modifier.size(20.dp),
+                tint = Color(0xFFF58D4D)
+            )
+        }
+    }
+
+    // Диалог подтверждения удаления
+    if (showDeleteDialog) {
+        AlertDialog(
+            onDismissRequest = { showDeleteDialog = false },
+            title = {
+                Text(
+                    text = "Подтверждение удаления",
+                    fontWeight = FontWeight.Bold,
+                    fontSize = 18.sp
+                )
+            },
+            text = {
+                Text(
+                    text = "Вы уверены, что хотите удалить акцию \"${service.name}\"?",
+                    fontSize = 16.sp
+                )
+            },
+            confirmButton = {
+                TextButton(
+                    onClick = {
+                        showDeleteDialog = false
+                        onDelete() // Вызываем удаление после подтверждения
+                    }
+                ) {
+                    Text(
+                        text = "Удалить",
+                        color = Color.Red,
+                        fontSize = 16.sp
+                    )
+                }
+            },
+            dismissButton = {
+                TextButton(
+                    onClick = { showDeleteDialog = false }
+                ) {
+                    Text(
+                        text = "Отмена",
+                        color = Color.Gray,
+                        fontSize = 16.sp
+                    )
+                }
+            },
+            containerColor = Color.White
+        )
     }
 }

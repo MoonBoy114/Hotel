@@ -448,7 +448,7 @@ fun MakerForNews(
                     Box(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .height(150.dp)
+                            .height(200.dp)
                             .background(Color.White, RoundedCornerShape(10.dp)),
                         contentAlignment = Alignment.Center
                     ) {

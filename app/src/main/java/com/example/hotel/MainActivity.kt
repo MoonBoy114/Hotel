@@ -45,8 +45,11 @@ import com.example.hotel.data.repository.HotelRepository
 import com.example.hotel.data.viewmodel.HotelViewModel
 import com.example.hotel.data.viewmodel.HotelViewModelFactory
 import com.example.hotel.detailscreens.NewsDetailScreen
+import com.example.hotel.detailscreens.ServiceDetailScreen
 import com.example.hotel.makers.MakerForNews
 import com.example.hotel.makers.MakerForRooms
+import com.example.hotel.makers.MakerForService
+import com.example.hotel.screens.AboutMe
 import com.example.hotel.screens.HomeScreen
 import com.example.hotel.screens.LoginScreen
 import com.example.hotel.screens.NewsScreen
@@ -124,7 +127,7 @@ fun AppNavigation(navController: NavHostController, viewModel: HotelViewModel) {
                 modifier = Modifier
                     .fillMaxSize()
                     .navigationBarsPadding()
-                    .imePadding()
+                
             ) { paddingValues ->
                 HomeScreen(viewModel, navController,Modifier.padding(paddingValues))
             }
@@ -135,7 +138,7 @@ fun AppNavigation(navController: NavHostController, viewModel: HotelViewModel) {
                 modifier = Modifier
                     .fillMaxSize()
                     .navigationBarsPadding()
-                    .imePadding()
+
             ) { paddingValues ->
                 ProfileScreen(viewModel, navController, Modifier.padding(paddingValues))
             }
@@ -195,6 +198,26 @@ fun AppNavigation(navController: NavHostController, viewModel: HotelViewModel) {
                 viewModel = viewModel,
                 navController = navController,
                 roomId = roomId
+            )
+        }
+        composable("aboutMe"
+        ) {
+            AboutMe(viewModel = viewModel, navController = navController)
+        }
+        composable("makerForService/{serviceId}") { backStackEntry ->
+            val serviceId = backStackEntry.arguments?.getString("serviceId")
+            MakerForService(viewModel = viewModel, navController = navController, serviceId = serviceId)
+        }
+
+        composable("makerForService") {
+            MakerForService(viewModel = viewModel, navController = navController)
+        }
+        composable("serviceDetail/{serviceId}") { backStackEntry ->
+            val serviceId = backStackEntry.arguments?.getString("serviceId") ?: ""
+            ServiceDetailScreen(
+                viewModel = viewModel,
+                serviceId = serviceId,
+                navController = navController
             )
         }
     }

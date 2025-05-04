@@ -92,6 +92,8 @@ fun MakerForRooms(
     var isMainImageLoading by remember { mutableStateOf(false) }
     val isAdditionalImageLoading =
         remember { mutableStateListOf<Boolean>().apply { repeat(9) { add(false) } } }
+    // Триггер для пересчёта изменений в additionalPhotos
+    var photoListTrigger by remember { mutableStateOf(0) }
 
     // Состояния для сообщений об ошибках
     var nameError by remember { mutableStateOf<String?>(null) }
@@ -129,6 +131,9 @@ fun MakerForRooms(
                 originalImageUrl = room.imageUrl
                 originalAdditionalPhotos.clear()
                 originalAdditionalPhotos.addAll(room.additionalPhotos)
+
+                // Обновляем триггер, чтобы учесть начальные данные
+                photoListTrigger++
             }
         }
     }
@@ -251,6 +256,7 @@ fun MakerForRooms(
 
                         val fileUrl = "${HotelApp.client.endpoint}/storage/buckets/images/files/$fileId/view?project=${HotelApp.projectId}"
                         additionalPhotos.add(fileUrl)
+                        photoListTrigger++
                         isAdditionalImageLoading[adjustedIndex] = false
                     } catch (e: AppwriteException) {
                         viewModel.setErrorMessage("Ошибка загрузки дополнительной фотографии: ${e.message}")
@@ -330,8 +336,10 @@ fun MakerForRooms(
         )
     }
 
-    // Проверяем, были ли внесены изменения
-    val hasChanges by remember(name, type, description, price, capacity, imageUrl, additionalPhotos) {
+
+    val hasChanges by remember(
+        name, type, description, price, capacity, imageUrl, photoListTrigger
+    ) {
         mutableStateOf(
             name != originalName ||
                     type != originalType ||
@@ -339,8 +347,8 @@ fun MakerForRooms(
                     price != originalPrice ||
                     capacity != originalCapacity ||
                     imageUrl != originalImageUrl ||
-                    !additionalPhotos.toList().containsAll(originalAdditionalPhotos) ||
-                    !originalAdditionalPhotos.toList().containsAll(additionalPhotos)
+                    additionalPhotos.size != originalAdditionalPhotos.size ||
+                    additionalPhotos.toList() != originalAdditionalPhotos.toList()
         )
     }
 
@@ -453,7 +461,7 @@ fun MakerForRooms(
                     Box(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .height(150.dp)
+                            .height(200.dp)
                             .background(Color.White, RoundedCornerShape(10.dp)),
                         contentAlignment = Alignment.Center
                     ) {
@@ -710,7 +718,9 @@ fun MakerForRooms(
                                                 }
                                             )
                                             IconButton(
-                                                onClick = { additionalPhotos.removeAt(index) },
+                                                onClick = {
+                                                    additionalPhotos.removeAt(index)
+                                                    photoListTrigger++},
                                                 modifier = Modifier
                                                     .align(Alignment.TopEnd)
                                                     .padding(4.dp)

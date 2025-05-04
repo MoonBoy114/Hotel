@@ -15,7 +15,6 @@ import io.appwrite.services.Databases
 import io.appwrite.services.Storage
 import java.io.File
 
-
 class HotelRepository(
     public val databases: Databases = HotelApp.databases,
     public val storage: Storage = HotelApp.storage
@@ -167,6 +166,51 @@ class HotelRepository(
         }
     }
 
+    suspend fun updateUser(
+        userId: String,
+        name: String? = null,
+        email: String? = null,
+        phone: String? = null
+    ) = withContext(Dispatchers.IO) {
+        try {
+            val updates = mutableMapOf<String, Any>()
+            name?.let { updates["name"] = it }
+            email?.let { updates["email"] = it }
+            phone?.let { updates["phone"] = it }
+            if (updates.isNotEmpty()) {
+                databases.updateDocument(
+                    databaseId = DATABASE_ID,
+                    collectionId = USERS_COLLECTION_ID,
+                    documentId = userId,
+                    data = updates
+                )
+            }
+        } catch (e: AppwriteException) {
+            throw Exception("Ошибка обновления пользователя: ${e.message}")
+        }
+    }
+
+    suspend fun getAllUsers(): List<User> = withContext(Dispatchers.IO) {
+        try {
+            val response = databases.listDocuments(
+                databaseId = DATABASE_ID,
+                collectionId = USERS_COLLECTION_ID
+            )
+            response.documents.map { document ->
+                User(
+                    userId = document.id,
+                    name = document.data["name"] as String,
+                    email = document.data["email"] as String,
+                    phone = document.data["phone"] as String,
+                    passwordHash = document.data["passwordHash"] as String,
+                    role = document.data["role"] as String
+                )
+            }
+        } catch (e: AppwriteException) {
+            throw Exception("Ошибка получения списка пользователей: ${e.message}")
+        }
+    }
+
     suspend fun isManager(userId: String): Boolean = withContext(Dispatchers.IO) {
         try {
             val document = databases.getDocument(
@@ -297,15 +341,32 @@ class HotelRepository(
                     name = document.data["name"] as String,
                     subTitle = document.data["subTitle"] as String,
                     description = document.data["description"] as String,
-                    imageUrl = document.data["imageUrl"] as String,
-                    additionalPhotos = (document.data["additionalPhotos"] as List<*>).map { it as String }
+                    imageUrl = document.data["imageUrl"] as String
                 )
             }
         } catch (e: AppwriteException) {
             throw Exception("Ошибка получения списка акций: ${e.message}")
         }
     }
-
+    suspend fun getServiceById(serviceId: String): Service? = withContext(Dispatchers.IO) {
+        try {
+            val document = databases.getDocument(
+                databaseId = DATABASE_ID,
+                collectionId = SERVICES_COLLECTION_ID,
+                documentId = serviceId
+            )
+            Service(
+                serviceId = document.id,
+                name = document.data["name"] as String,
+                subTitle = document.data["subTitle"] as String? ?: "",
+                description = document.data["description"] as String,
+                imageUrl = document.data["imageUrl"] as String
+            )
+        } catch (e: AppwriteException) {
+            Log.e("HotelRepository", "Failed to fetch service with ID $serviceId: ${e.message}", e)
+            throw Exception("Ошибка получения акции: ${e.message}")
+        }
+    }
     suspend fun insertService(service: Service): String = withContext(Dispatchers.IO) {
         try {
             val response = databases.createDocument(
@@ -316,8 +377,7 @@ class HotelRepository(
                     "name" to service.name,
                     "subTitle" to service.subTitle,
                     "description" to service.description,
-                    "imageUrl" to service.imageUrl,
-                    "additionalPhotos" to service.additionalPhotos
+                    "imageUrl" to service.imageUrl
                 )
             )
             response.id
@@ -331,8 +391,7 @@ class HotelRepository(
         name: String? = null,
         subTitle: String? = null,
         description: String? = null,
-        imageUrl: String? = null,
-        additionalPhotos: List<String>? = null
+        imageUrl: String? = null
     ) = withContext(Dispatchers.IO) {
         try {
             val updates = mutableMapOf<String, Any>()
@@ -340,7 +399,6 @@ class HotelRepository(
             subTitle?.let { updates["subTitle"] = it }
             description?.let { updates["description"] = it }
             imageUrl?.let { updates["imageUrl"] = it }
-            additionalPhotos?.let { updates["additionalPhotos"] = it }
             if (updates.isNotEmpty()) {
                 databases.updateDocument(
                     databaseId = DATABASE_ID,
@@ -386,6 +444,27 @@ class HotelRepository(
             }
         } catch (e: AppwriteException) {
             throw Exception("Ошибка получения списка бронирований: ${e.message}")
+        }
+    }
+
+    suspend fun getAllBookings(): List<Booking> = withContext(Dispatchers.IO) {
+        try {
+            val response = databases.listDocuments(
+                databaseId = DATABASE_ID,
+                collectionId = BOOKINGS_COLLECTION_ID
+            )
+            response.documents.map { document ->
+                Booking(
+                    bookingId = document.id,
+                    userId = document.data["userId"] as String,
+                    roomId = document.data["roomId"] as String,
+                    checkInDate = document.data["checkInDate"] as String,
+                    checkOutDate = document.data["checkOutDate"] as String,
+                    totalPrice = (document.data["totalPrice"] as Number).toDouble()
+                )
+            }
+        } catch (e: AppwriteException) {
+            throw Exception("Ошибка получения списка всех бронирований: ${e.message}")
         }
     }
 
