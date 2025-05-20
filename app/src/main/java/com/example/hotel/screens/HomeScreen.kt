@@ -202,6 +202,16 @@ fun HomeScreen(viewModel: HotelViewModel, navController: NavHostController, modi
                                 onClick = {
                                     if (category.title == "Номера") {
                                         navController.navigate("rooms")
+                                    } else if (category.title == "Трансфер") {
+                                        navController.navigate("transfer")
+                                    } else if (category.title == "Анимации") {
+                                        navController.navigate("animation")
+                                    } else if (category.title == "Рестораны") {
+                                        navController.navigate("restaurant")
+                                    } else if (category.title == "Отели") {
+                                        navController.navigate("hotel")
+                                    } else if (category.title == "SPA") {
+                                        navController.navigate("spa")
                                     }
                                 }
                             )

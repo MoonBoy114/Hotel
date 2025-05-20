@@ -50,12 +50,20 @@ import com.example.hotel.makers.MakerForNews
 import com.example.hotel.makers.MakerForRooms
 import com.example.hotel.makers.MakerForService
 import com.example.hotel.screens.AboutMe
+import com.example.hotel.screens.AnimationScreen
+import com.example.hotel.screens.DevicesScreen
+import com.example.hotel.screens.FillUpScreen
 import com.example.hotel.screens.HomeScreen
+import com.example.hotel.screens.HotelScreen
 import com.example.hotel.screens.LoginScreen
 import com.example.hotel.screens.NewsScreen
 import com.example.hotel.screens.ProfileScreen
 import com.example.hotel.screens.RegisterScreen
+import com.example.hotel.screens.RestaurantScreen
 import com.example.hotel.screens.RoomScreen
+import com.example.hotel.screens.SPAScreen
+import com.example.hotel.screens.ServicesScreen
+import com.example.hotel.screens.TransferScreen
 
 import com.example.hotel.ui.theme.HotelTheme
 
@@ -220,6 +228,66 @@ fun AppNavigation(navController: NavHostController, viewModel: HotelViewModel) {
                 navController = navController
             )
         }
+        composable("devices") {
+            DevicesScreen(navController = navController)
+        }
+        composable("services") {
+            ServicesScreen(navController = navController)
+        }
+        composable("fillUp") {
+            FillUpScreen(navController = navController)
+        }
+        composable("transfer") {
+            Scaffold(
+                bottomBar = { OrangeNavigationBar(navController) },
+                modifier = Modifier
+                    .fillMaxSize()
+                    .navigationBarsPadding()
+            ) { paddingValues ->
+                TransferScreen(navController = navController, modifier = Modifier.padding(paddingValues))
+            }
+        }
+        composable("animation") {
+            Scaffold(
+                bottomBar = { OrangeNavigationBar(navController) },
+                modifier = Modifier
+                    .fillMaxSize()
+                    .navigationBarsPadding()
+            ) { paddingValues ->
+                AnimationScreen(navController = navController, modifier = Modifier.padding(paddingValues))
+            }
+        }
+        composable("restaurant") {
+            Scaffold(
+                bottomBar = { OrangeNavigationBar(navController) },
+                modifier = Modifier
+                    .fillMaxSize()
+                    .navigationBarsPadding()
+            ) { paddingValues ->
+                RestaurantScreen(navController = navController, modifier = Modifier.padding(paddingValues))
+            }
+        }
+        composable("hotel") {
+            Scaffold(
+                bottomBar = { OrangeNavigationBar(navController) },
+                modifier = Modifier
+                    .fillMaxSize()
+                    .navigationBarsPadding()
+            ) { paddingValues ->
+                HotelScreen(navController = navController, modifier = Modifier.padding(paddingValues))
+            }
+        }
+        composable("spa") {
+            Scaffold(
+                bottomBar = { OrangeNavigationBar(navController) },
+                modifier = Modifier
+                    .fillMaxSize()
+                    .navigationBarsPadding()
+            ) { paddingValues ->
+                SPAScreen(navController = navController, modifier = Modifier.padding(paddingValues))
+            }
+        }
+
     }
 }
 

@@ -15,6 +15,7 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material.icons.filled.Search
@@ -33,9 +34,11 @@ import androidx.compose.ui.text.SpanStyle
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.buildAnnotatedString
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.ui.window.Dialog
 import androidx.navigation.NavHostController
 import coil.compose.AsyncImage
 import com.example.hotel.R
@@ -69,7 +72,6 @@ fun RoomScreen(
         visibleRooms.addAll(rooms)
     }
 
-
     LaunchedEffect(bookings) {
         viewModel.loadRooms()
     }
@@ -79,20 +81,20 @@ fun RoomScreen(
         viewModel.loadRooms()
         viewModel.loadUsers()
         if (userRole == "Manager") {
-            viewModel.loadAllBookings() // Для менеджера загружаем все бронирования
+            viewModel.loadAllBookings()
         } else {
             currentUser?.userId?.let { userId ->
-                viewModel.loadBookings(userId) // Для обычного пользователя загружаем только его бронирования
+                viewModel.loadBookings(userId)
             }
         }
     }
 
     // Состояния для фильтров
-    var showFilterSheet by remember { mutableStateOf(false) }
-    var priceRange by remember { mutableFloatStateOf(10000000f) }
+    var showFilterDialog by remember { mutableStateOf(false) }
+    var priceFrom by remember { mutableStateOf("") }
+    var priceTo by remember { mutableStateOf("") }
     var selectedType by remember { mutableStateOf<String?>(null) }
-    var capacity by remember { mutableIntStateOf(4) }
-    val sheetState = rememberModalBottomSheetState()
+    var capacity by remember { mutableStateOf("") }
     val scope = rememberCoroutineScope()
 
     // Состояние для диалога подтверждения удаления
@@ -105,19 +107,6 @@ fun RoomScreen(
     // Состояние для уведомления
     val snackbarHostState = remember { SnackbarHostState() }
     var snackbarMessage by remember { mutableStateOf("") }
-
-    // Загружаем данные при открытии экрана
-    LaunchedEffect(currentUser) {
-        viewModel.loadRooms()
-        viewModel.loadUsers()
-        if (userRole == "Manager") {
-            viewModel.loadAllBookings() // Для менеджера загружаем все бронирования
-        } else {
-            currentUser?.userId?.let { userId ->
-                viewModel.loadBookings(userId) // Для обычного пользователя загружаем только его бронирования
-            }
-        }
-    }
 
     // Обработка ошибок
     val errorMessage by viewModel.errorMessage.observeAsState()
@@ -138,13 +127,12 @@ fun RoomScreen(
     }
 
     // Фильтрация номеров
-    val filteredRooms by remember(searchQuery.value, visibleRooms, priceRange, selectedType, capacity, userRole, bookings) {
+    val filteredRooms by remember(searchQuery.value, visibleRooms, priceFrom, priceTo, selectedType, capacity, userRole, bookings) {
         derivedStateOf {
             visibleRooms.filter { room ->
-                // Для менеджера показываем все номера, для остальных — только незанятые
                 val isNotBooked = if (userRole == "Manager") true else {
                     val booking = bookings.find { it.roomId == room.roomId }
-                    booking == null // Гость видит только свободные номера
+                    booking == null
                 }
 
                 val matchesSearch = searchQuery.value.isBlank() ||
@@ -152,12 +140,24 @@ fun RoomScreen(
                         room.description.lowercase().contains(searchQuery.value.lowercase()) ||
                         room.type.lowercase().contains(searchQuery.value.lowercase())
 
-                val matchesPrice = room.price <= priceRange
+                val priceFromValue = priceFrom.toFloatOrNull() ?: 0f
+                val priceToValue = priceTo.toFloatOrNull() ?: 10000000f
+                val matchesPrice = room.price in priceFromValue..priceToValue
+
                 val matchesType = selectedType == null || room.type == selectedType
-                val matchesCapacity = room.capacity <= capacity
+
+                val capacityValue = capacity.toIntOrNull() ?: 4
+                val matchesCapacity = room.capacity <= capacityValue
 
                 isNotBooked && matchesSearch && matchesPrice && matchesType && matchesCapacity
             }
+        }
+    }
+
+    // Проверка активности кнопки "Применить"
+    val isApplyEnabled by remember(priceFrom, priceTo, selectedType, capacity) {
+        derivedStateOf {
+            (priceFrom.isNotBlank() || priceTo.isNotBlank()) || selectedType != null || capacity.isNotBlank()
         }
     }
 
@@ -165,50 +165,21 @@ fun RoomScreen(
     if (showDeleteDialog && roomToDelete != null) {
         AlertDialog(
             onDismissRequest = { showDeleteDialog = false },
-            title = {
-                Text(
-                    text = "Удалить номер?",
-                    fontSize = 20.sp,
-                    fontWeight = FontWeight.Bold
-                )
-            },
-            text = {
-                Text(
-                    text = "Вы уверены, что хотите удалить номер \"${roomToDelete!!.name}\"?",
-                    fontSize = 16.sp,
-                    color = Color(0xFF666666)
-                )
-            },
+            title = { Text("Удалить номер?", fontSize = 20.sp, fontWeight = FontWeight.Bold) },
+            text = { Text("Вы уверены, что хотите удалить номер \"${roomToDelete!!.name}\"?", fontSize = 16.sp, color = Color(0xFF666666)) },
             confirmButton = {
-                TextButton(
-                    onClick = {
-                        visibleRooms.remove(roomToDelete)
-                        viewModel.deleteRoom(roomToDelete!!.roomId)
-                        showDeleteDialog = false
-                        roomToDelete = null
-                    }
-                ) {
-                    Text(
-                        text = "Удалить",
-                        color = Color.Red,
-                        fontSize = 16.sp,
-                        fontWeight = FontWeight.Bold
-                    )
+                TextButton(onClick = {
+                    visibleRooms.remove(roomToDelete)
+                    viewModel.deleteRoom(roomToDelete!!.roomId)
+                    showDeleteDialog = false
+                    roomToDelete = null
+                }) {
+                    Text("Удалить", color = Color.Red, fontSize = 16.sp, fontWeight = FontWeight.Bold)
                 }
             },
             dismissButton = {
-                TextButton(
-                    onClick = {
-                        showDeleteDialog = false
-                        roomToDelete = null
-                    }
-                ) {
-                    Text(
-                        text = "Отмена",
-                        color = Color(0xFFF58D4D),
-                        fontSize = 16.sp,
-                        fontWeight = FontWeight.Bold
-                    )
+                TextButton(onClick = { showDeleteDialog = false; roomToDelete = null }) {
+                    Text("Отмена", color = Color(0xFFF58D4D), fontSize = 16.sp, fontWeight = FontWeight.Bold)
                 }
             },
             containerColor = Color.White,
@@ -220,30 +191,11 @@ fun RoomScreen(
     if (showWarningDialog) {
         AlertDialog(
             onDismissRequest = { showWarningDialog = false },
-            title = {
-                Text(
-                    text = "Действие невозможно",
-                    fontSize = 20.sp,
-                    fontWeight = FontWeight.Bold
-                )
-            },
-            text = {
-                Text(
-                    text = "Номер забронирован. Вы не можете изменить или удалить его, пока бронирование активно.",
-                    fontSize = 16.sp,
-                    color = Color(0xFF666666)
-                )
-            },
+            title = { Text("Действие невозможно", fontSize = 20.sp, fontWeight = FontWeight.Bold) },
+            text = { Text("Номер забронирован. Вы не можете изменить или удалить его, пока бронирование активно.", fontSize = 16.sp, color = Color(0xFF666666)) },
             confirmButton = {
-                TextButton(
-                    onClick = { showWarningDialog = false }
-                ) {
-                    Text(
-                        text = "ОК",
-                        color = Color(0xFFF58D4D),
-                        fontSize = 16.sp,
-                        fontWeight = FontWeight.Bold
-                    )
+                TextButton(onClick = { showWarningDialog = false }) {
+                    Text("ОК", color = Color(0xFFF58D4D), fontSize = 16.sp, fontWeight = FontWeight.Bold)
                 }
             },
             containerColor = Color.White,
@@ -251,140 +203,212 @@ fun RoomScreen(
         )
     }
 
-    // Модальное окно фильтров
-    if (showFilterSheet) {
-        ModalBottomSheet(
-            onDismissRequest = { showFilterSheet = false },
-            sheetState = sheetState,
-            containerColor = Color.White,
-            shape = RoundedCornerShape(topStart = 16.dp, topEnd = 16.dp)
-        ) {
+    // Диалог фильтров
+    if (showFilterDialog) {
+        Dialog(onDismissRequest = { showFilterDialog = false }) {
             Column(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(16.dp)
-                    .padding(bottom = 32.dp)
+                    .background(Color.White, RoundedCornerShape(16.dp))
+                    .padding(16.dp),
+                horizontalAlignment = Alignment.CenterHorizontally
             ) {
-                Text(
-                    text = "Фильтры",
-                    fontSize = 20.sp,
-                    fontWeight = FontWeight.Bold,
-                    modifier = Modifier.padding(bottom = 16.dp)
-                )
-
-                // Фильтр по цене
-                Text(
-                    text = "Цена до: ${priceRange.toInt()} ₽",
-                    fontSize = 16.sp,
-                    fontWeight = FontWeight.Bold,
-                    modifier = Modifier.padding(bottom = 8.dp)
-                )
-                Slider(
-                    value = priceRange,
-                    onValueChange = { priceRange = it },
-                    valueRange = 100f..10000000f,
-                    modifier = Modifier.fillMaxWidth(),
-                    colors = SliderDefaults.colors(
-                        thumbColor = Color(0xFFF58D4D),
-                        activeTrackColor = Color(0xFFF58D4D),
-                        inactiveTrackColor = Color(0xFFE0E0E0)
-                    )
-                )
-
-                // Фильтр по типу комнаты
-                Text(
-                    text = "Тип комнаты",
-                    fontSize = 16.sp,
-                    fontWeight = FontWeight.Bold,
-                    modifier = Modifier.padding(top = 16.dp, bottom = 8.dp)
-                )
                 Row(
                     modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.SpaceBetween
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
                 ) {
-                    RoomType.entries.forEach { type ->
-                        FilterChip(
-                            selected = selectedType == type.displayName,
-                            onClick = {
-                                selectedType = if (selectedType == type.displayName) null else type.displayName
-                            },
-                            label = {
-                                Text(
-                                    text = type.displayName,
-                                    fontSize = 14.sp,
-                                    color = if (selectedType == type.displayName) Color.White else Color.Black
-                                )
-                            },
-                            colors = FilterChipDefaults.filterChipColors(
-                                selectedContainerColor = Color(0xFFF58D4D),
-                                selectedLabelColor = Color.White,
-                                containerColor = Color(0xFFE0E0E0)
-                            ),
-                            modifier = Modifier.padding(end = 8.dp)
+                    Text(
+                        text = "Фильтр",
+                        fontSize = 20.sp,
+                        fontWeight = FontWeight.Bold
+                    )
+                    IconButton(
+                        onClick = {
+                            priceFrom = ""
+                            priceTo = ""
+                            selectedType = null
+                            capacity = ""
+                            showFilterDialog = false
+                        }
+                    ) {
+                        Icon(
+                            painter = painterResource(id = R.drawable.ic_close),
+                            contentDescription = "Close",
+                            tint = Color(0xFFF58D4D),
+                            modifier = Modifier.size(24.dp)
                         )
                     }
                 }
 
-                // Фильтр по вместимости
-                Text(
-                    text = "Вместимость до: $capacity чел",
-                    fontSize = 16.sp,
-                    fontWeight = FontWeight.Bold,
-                    modifier = Modifier.padding(top = 16.dp, bottom = 8.dp)
-                )
-                Slider(
-                    value = capacity.toFloat(),
-                    onValueChange = { capacity = it.toInt() },
-                    valueRange = 1f..4f,
-                    steps = 2,
-                    modifier = Modifier.fillMaxWidth(),
-                    colors = SliderDefaults.colors(
-                        thumbColor = Color(0xFFF58D4D),
-                        activeTrackColor = Color(0xFFF58D4D),
-                        inactiveTrackColor = Color(0xFFE0E0E0)
-                    )
-                )
+                Spacer(modifier = Modifier.height(16.dp))
 
-                // Кнопки для сброса и применения фильтров
+                // Фильтр по цене
+                Text(
+                    text = "Цена",
+                    fontSize = 16.sp,
+                    color = Color.Black,
+                    fontWeight = FontWeight.Bold,
+                    modifier = Modifier.align(Alignment.Start)
+                )
+                Spacer(modifier = Modifier.height(8.dp))
                 Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(top = 16.dp),
+                    modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.SpaceBetween
                 ) {
-                    Button(
-                        onClick = {
-                            priceRange = 10000000f
-                            selectedType = null
-                            capacity = 4
-                        },
-                        colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFE0E0E0)),
-                        shape = RoundedCornerShape(10.dp),
-                        modifier = Modifier.weight(1f).padding(end = 8.dp)
+                    TextField(
+                        value = priceFrom,
+                        onValueChange = { priceFrom = it },
+                        placeholder = { Text("От", color = Color.Gray) },
+                        modifier = Modifier
+                            .weight(1f)
+                            .padding(end = 8.dp),
+                        singleLine = true,
+                        shape = RoundedCornerShape(8.dp),
+                        colors = TextFieldDefaults.colors(
+                            focusedContainerColor = Color(0xFFE0E0E0),
+                            unfocusedContainerColor = Color(0xFFE0E0E0),
+                            disabledContainerColor = Color(0xFFE0E0E0),
+                            focusedIndicatorColor = Color.Transparent,
+                            unfocusedIndicatorColor = Color.Transparent
+                        ),
+                        textStyle = TextStyle(fontSize = 14.sp),
+                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number)
+                    )
+                    TextField(
+                        value = priceTo,
+                        onValueChange = { priceTo = it },
+                        placeholder = { Text("До", color = Color.Gray) },
+                        modifier = Modifier
+                            .weight(1f)
+                            .padding(start = 8.dp),
+                        singleLine = true,
+                        shape = RoundedCornerShape(8.dp),
+                        colors = TextFieldDefaults.colors(
+                            focusedContainerColor = Color(0xFFE0E0E0),
+                            unfocusedContainerColor = Color(0xFFE0E0E0),
+                            disabledContainerColor = Color(0xFFE0E0E0),
+                            focusedIndicatorColor = Color.Transparent,
+                            unfocusedIndicatorColor = Color.Transparent
+                        ),
+                        textStyle = TextStyle(fontSize = 14.sp),
+                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number)
+                    )
+                }
+
+                Spacer(modifier = Modifier.height(16.dp))
+
+                // Фильтр по типу
+                Text(
+                    text = "Тип",
+                    fontSize = 16.sp,
+                    color = Color.Black,
+                    fontWeight = FontWeight.Bold,
+                    modifier = Modifier.align(Alignment.Start)
+                )
+                Spacer(modifier = Modifier.height(8.dp))
+                Column {
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween
                     ) {
-                        Text(
-                            text = "Сбросить",
-                            fontSize = 16.sp,
-                            color = Color.Black,
-                            fontWeight = FontWeight.Bold
-                        )
+                        RoomType.entries.filter { it != RoomType.LUXE }.forEach { type ->
+                            Button(
+                                onClick = { selectedType = if (selectedType == type.displayName) null else type.displayName },
+                                modifier = Modifier
+                                    .weight(1f)
+                                    .padding(horizontal = 4.dp),
+                                colors = ButtonDefaults.buttonColors(
+                                    containerColor = if (selectedType == type.displayName) Color(0xFFF58D4D) else Color(0xFFE0E0E0)
+                                ),
+                                shape = RoundedCornerShape(8.dp)
+                            ) {
+                                Text(
+                                    text = type.displayName,
+                                    fontSize = 10.sp,
+                                    color = if (selectedType == type.displayName) Color.White else Color.Black
+                                )
+                            }
+                        }
                     }
-                    Button(
-                        onClick = {
-                            scope.launch { sheetState.hide() }
-                            showFilterSheet = false
-                        },
-                        colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFF58D4D)),
-                        shape = RoundedCornerShape(10.dp),
-                        modifier = Modifier.weight(1f).padding(start = 8.dp)
+                    Spacer(modifier = Modifier.height(8.dp))
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween
                     ) {
-                        Text(
-                            text = "Применить",
-                            fontSize = 16.sp,
-                            color = Color.White,
-                            fontWeight = FontWeight.Bold
-                        )
+                        Button(
+                            onClick = { selectedType = if (selectedType == RoomType.LUXE.displayName) null else RoomType.LUXE.displayName },
+                            modifier = Modifier
+                                .weight(1f)
+                                .padding(horizontal = 4.dp),
+                            colors = ButtonDefaults.buttonColors(
+                                containerColor = if (selectedType == RoomType.LUXE.displayName) Color(0xFFF58D4D) else Color(0xFFE0E0E0)
+                            ),
+                            shape = RoundedCornerShape(8.dp)
+                        ) {
+                            Text(
+                                text = RoomType.LUXE.displayName,
+                                fontSize = 14.sp,
+                                color = if (selectedType == RoomType.LUXE.displayName) Color.White else Color.Black
+                            )
+                        }
                     }
+                }
+
+                Spacer(modifier = Modifier.height(16.dp))
+
+                // Фильтр по вместимости
+                Text(
+                    text = "Вместимость",
+                    fontSize = 16.sp,
+                    color = Color.Black,
+                    fontWeight = FontWeight.Bold,
+                    modifier = Modifier.align(Alignment.Start)
+                )
+                Spacer(modifier = Modifier.height(8.dp))
+                TextField(
+                    value = capacity,
+                    onValueChange = { newValue ->
+                        if (newValue.toIntOrNull() in 1..5 || newValue.isEmpty()) {
+                            capacity = newValue
+                        }
+                    },
+                    placeholder = { Text("От 1 до 5 человек", color = Color.Gray) },
+                    modifier = Modifier.fillMaxWidth(),
+                    singleLine = true,
+                    shape = RoundedCornerShape(8.dp),
+                    colors = TextFieldDefaults.colors(
+                        focusedContainerColor = Color(0xFFE0E0E0),
+                        unfocusedContainerColor = Color(0xFFE0E0E0),
+                        disabledContainerColor = Color(0xFFE0E0E0),
+                        focusedIndicatorColor = Color.Transparent,
+                        unfocusedIndicatorColor = Color.Transparent
+                    ),
+                    textStyle = TextStyle(fontSize = 14.sp),
+                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number)
+                )
+
+                Spacer(modifier = Modifier.height(24.dp))
+
+                // Кнопка "Применить"
+                Button(
+                    onClick = { showFilterDialog = false },
+                    enabled = isApplyEnabled,
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = Color(0xFFF58D4D),
+                        disabledContainerColor = Color(0xFFCCCCCC)
+                    ),
+                    shape = RoundedCornerShape(10.dp),
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(40.dp)
+                ) {
+                    Text(
+                        text = "Применить",
+                        fontSize = 16.sp,
+                        color = Color.White,
+                        fontWeight = FontWeight.Bold
+                    )
                 }
             }
         }
@@ -459,7 +483,7 @@ fun RoomScreen(
                         )
                     }
                     IconButton(
-                        onClick = { showFilterSheet = true },
+                        onClick = { showFilterDialog = true },
                         modifier = Modifier
                             .padding(start = 8.dp)
                             .size(40.dp)
@@ -579,17 +603,13 @@ fun RoomScreen(
                                     val checkInDate = LocalDate.now().format(formatter)
                                     val checkOutDate = LocalDate.now().plusDays(1).format(formatter)
 
-                                    // Проверяем, достаточно ли средств
-                                    val userMoney = money
+                                    val userMoney = money // Замените на реальную логику получения денег пользователя
                                     val roomPrice = room.price
                                     if (userMoney >= roomPrice) {
-                                        // Достаточно средств — бронируем
                                         viewModel.bookRoom(room, user.userId, checkInDate, checkOutDate, roomPrice)
-                                        // Обновляем список номеров после бронирования
                                         viewModel.loadRooms()
                                         snackbarMessage = "Успешно забронирован номер! Перейдите в Профиль для подробной информации."
                                     } else {
-                                        // Недостаточно средств — показываем уведомление
                                         val shortfall = roomPrice - userMoney
                                         snackbarMessage = "Не удалось забронировать номер. Недостаточно средств. Не хватает: ${shortfall.toInt()} ₽."
                                     }
@@ -620,23 +640,15 @@ fun RoomItem(
     onSelect: () -> Unit,
     modifier: Modifier = Modifier
 ) {
-    // Находим бронирование для текущей комнаты
     val booking = bookings.find { it.roomId == room.roomId }
     val bookedByUser = if (booking != null) { users.find { it.userId == booking.userId }?.name ?: "Неизвестный пользователь" } else { null }
     var showMenu by remember { mutableStateOf(false) }
 
-    // Список всех фотографий (основная + дополнительные)
     val allPhotos = remember(room) {
         listOf(room.imageUrl) + room.additionalPhotos
     }
-
-// Состояние для текущего индекса фотографии
     var currentPhotoIndex by remember { mutableStateOf(0) }
-
-// Состояние для смещения при свайпе
     var offsetX by remember { mutableStateOf(0f) }
-
-// Анимированное значение смещения
     val animatedOffsetX by animateFloatAsState(
         targetValue = offsetX,
         animationSpec = tween(durationMillis = 600),
@@ -653,7 +665,6 @@ fun RoomItem(
         Column(
             modifier = Modifier.fillMaxWidth()
         ) {
-            // Карусель фотографий номера
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -663,34 +674,29 @@ fun RoomItem(
                     .pointerInput(Unit) {
                         detectHorizontalDragGestures(
                             onDragEnd = {
-                                // Определяем направление свайпа по конечному смещению
-                                if (offsetX < 0) { // Свайп влево
+                                if (offsetX < 0) {
                                     if (currentPhotoIndex < allPhotos.size - 1) {
                                         currentPhotoIndex++
                                     } else {
                                         currentPhotoIndex = 0
                                     }
-                                } else if (offsetX > 0) { // Свайп вправо
+                                } else if (offsetX > 0) {
                                     if (currentPhotoIndex > 0) {
                                         currentPhotoIndex--
                                     } else {
                                         currentPhotoIndex = allPhotos.size - 1
                                     }
                                 }
-                                // Сбрасываем смещение после завершения свайпа
                                 offsetX = 0f
                             },
                             onDragCancel = {
-                                // Сбрасываем смещение, если свайп отменён
                                 offsetX = 0f
                             }
                         ) { _, dragAmount ->
-                            // Обновляем смещение во время свайпа
                             offsetX += dragAmount
                         }
                     }
             ) {
-                // Используем Crossfade для плавного перехода между изображениями
                 Crossfade(
                     targetState = allPhotos[currentPhotoIndex],
                     animationSpec = tween(durationMillis = 600),
@@ -709,7 +715,6 @@ fun RoomItem(
                     )
                 }
 
-                // Индикаторы (кружочки)
                 Row(
                     modifier = Modifier
                         .align(Alignment.BottomCenter)
@@ -730,7 +735,6 @@ fun RoomItem(
                     }
                 }
 
-                // Троеточие (меню) для Manager
                 if (userRole == "Manager") {
                     Box(
                         modifier = Modifier
@@ -760,13 +764,7 @@ fun RoomItem(
                             modifier = Modifier.background(Color.White)
                         ) {
                             DropdownMenuItem(
-                                text = {
-                                    Text(
-                                        text = "Изменить",
-                                        fontSize = 16.sp,
-                                        color = if (bookedByUser == null) Color(0xFFF58D4D) else Color.Gray
-                                    )
-                                },
+                                text = { Text("Изменить", fontSize = 16.sp, color = if (bookedByUser == null) Color(0xFFF58D4D) else Color.Gray) },
                                 onClick = {
                                     showMenu = false
                                     onEdit()
@@ -774,13 +772,7 @@ fun RoomItem(
                                 enabled = bookedByUser == null
                             )
                             DropdownMenuItem(
-                                text = {
-                                    Text(
-                                        text = "Удалить",
-                                        fontSize = 16.sp,
-                                        color = if (bookedByUser == null) Color.Red else Color.Gray
-                                    )
-                                },
+                                text = { Text("Удалить", fontSize = 16.sp, color = if (bookedByUser == null) Color.Red else Color.Gray) },
                                 onClick = {
                                     showMenu = false
                                     onDelete()
@@ -794,7 +786,6 @@ fun RoomItem(
 
             Spacer(Modifier.height(16.dp))
 
-            // Название номера с подсветкой
             Text(
                 text = highlightText(room.name.uppercase(), searchQuery),
                 fontSize = 18.sp,
@@ -805,7 +796,6 @@ fun RoomItem(
 
             Spacer(Modifier.height(8.dp))
 
-            // Тип номера с иконкой звезды
             Row(
                 modifier = Modifier.padding(horizontal = 16.dp),
                 verticalAlignment = Alignment.CenterVertically
@@ -826,7 +816,6 @@ fun RoomItem(
 
             Spacer(Modifier.height(8.dp))
 
-            // Вместимость и цена
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -856,10 +845,8 @@ fun RoomItem(
 
             Spacer(Modifier.height(16.dp))
 
-            // Кнопка или текст "Забронировано"
             if (userRole == "Manager") {
                 if (bookedByUser != null) {
-                    // Если номер забронирован, показываем текст
                     Text(
                         text = "Забронировано: $bookedByUser",
                         fontSize = 14.sp,
@@ -870,16 +857,13 @@ fun RoomItem(
                             .padding(horizontal = 16.dp)
                     )
                 } else {
-                    // Если номер свободен, показываем кнопку для менеджера
                     Button(
                         onClick = onSelect,
                         modifier = Modifier
                             .fillMaxWidth()
                             .height(40.dp)
                             .padding(horizontal = 16.dp),
-                        colors = ButtonDefaults.buttonColors(
-                            containerColor = Color(0xFFF58D4D)
-                        ),
+                        colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFF58D4D)),
                         shape = RoundedCornerShape(10.dp)
                     ) {
                         Text(
@@ -891,16 +875,13 @@ fun RoomItem(
                     }
                 }
             } else if (bookedByUser == null) {
-                // Кнопка "Выбрать номер" для гостя, если номер свободен
                 Button(
                     onClick = onSelect,
                     modifier = Modifier
                         .fillMaxWidth()
                         .height(40.dp)
                         .padding(horizontal = 16.dp),
-                    colors = ButtonDefaults.buttonColors(
-                        containerColor = Color(0xFFF58D4D)
-                    ),
+                    colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFF58D4D)),
                     shape = RoundedCornerShape(10.dp)
                 ) {
                     Text(
@@ -913,7 +894,6 @@ fun RoomItem(
             }
         }
     }
-
 }
 
 @Composable

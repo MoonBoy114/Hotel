@@ -68,7 +68,7 @@ fun ProfileScreen(viewModel: HotelViewModel, navController: NavHostController, m
     val activeBookings = bookings.filter { booking ->
         val formatter = DateTimeFormatter.ofPattern("dd.MM.yyyy")
         val currentDate = LocalDate.now().format(formatter)
-        currentDate < booking.checkOutDate
+        currentDate > booking.checkOutDate
     }
 
 
@@ -232,7 +232,7 @@ fun ProfileScreen(viewModel: HotelViewModel, navController: NavHostController, m
                     }
 
                     Button(
-                        onClick = { /* Пополнение кошелька */ },
+                        onClick = { navController.navigate("fillUp") },
                         modifier = Modifier
                             .height(36.dp)
                             .padding(end = 16.dp),
@@ -382,7 +382,7 @@ fun ProfileScreen(viewModel: HotelViewModel, navController: NavHostController, m
                     Row(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .clickable { },
+                            .clickable {navController.navigate("services") },
                         verticalAlignment = Alignment.CenterVertically
                     ) {
                         Icon(
@@ -423,7 +423,7 @@ fun ProfileScreen(viewModel: HotelViewModel, navController: NavHostController, m
                     Row(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .clickable { },
+                            .clickable { navController.navigate("devices") },
                         verticalAlignment = Alignment.CenterVertically
                     ) {
                         Icon(

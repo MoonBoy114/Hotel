@@ -3,7 +3,6 @@ package com.example.hotel.data
 
 
 data class News(
-
     val newsId: String = "",
     val title: String = "",
     val subTitle: String = "",

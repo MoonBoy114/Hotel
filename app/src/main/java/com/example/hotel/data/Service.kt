@@ -9,6 +9,5 @@ data class Service(
     val subTitle: String,
     val description: String = "",
     val imageUrl: String = "",
-
 )
 
