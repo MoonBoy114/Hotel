@@ -1,5 +1,6 @@
 package com.example.hotel.detailscreens
 
+import android.graphics.Bitmap
 import androidx.compose.animation.Crossfade
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.tween
@@ -16,14 +17,10 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.lazy.LazyRow
-import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowBack
-import androidx.compose.material.icons.filled.KeyboardArrowLeft
-import androidx.compose.material.icons.filled.KeyboardArrowRight
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -41,15 +38,19 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalConfiguration
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.core.graphics.drawable.toBitmap
 import androidx.navigation.NavHostController
+import androidx.palette.graphics.Palette
 import coil.compose.AsyncImage
+import coil.compose.rememberAsyncImagePainter
 import com.example.hotel.data.viewmodel.HotelViewModel
 import kotlinx.coroutines.launch
-
 
 @Composable
 fun NewsDetailScreen(
@@ -71,16 +72,30 @@ fun NewsDetailScreen(
 
     // Состояние для текущего индекса дополнительной фотографии
     var currentPhotoIndex by remember { mutableStateOf(0) }
-// Состояние для смещения при свайпе
+    // Состояние для смещения при свайпе
     var offsetX by remember { mutableStateOf(0f) }
-// Анимированное значение смещения
+    // Анимированное значение смещения
     val animatedOffsetX by animateFloatAsState(
         targetValue = offsetX,
-        animationSpec = tween(durationMillis = 600), // Замедляем анимацию до 600 мс
+        animationSpec = tween(durationMillis = 600),
         label = "offsetXAnimation"
     )
 
-// Если новость не загружена, показываем индикатор загрузки
+    // Состояние для доминирующего цвета фона (только для дополнительных фотографий)
+    var backgroundColor by remember { mutableStateOf(Color.Transparent) }
+    // Состояние для определения, нужно ли применять фон
+    var shouldApplyBackground by remember { mutableStateOf(false) }
+
+    // Получаем ширину экрана в пикселях
+    val screenWidthPx = with(LocalDensity.current) {
+        LocalConfiguration.current.screenWidthDp.dp.toPx()
+    }
+    // Высота контейнера в пикселях (190.dp)
+    val containerHeightPx = with(LocalDensity.current) { 190.dp.toPx() }
+    // Пропорции контейнера
+    val containerAspectRatio = screenWidthPx / containerHeightPx
+
+    // Если новость не загружена, показываем индикатор загрузки
     if (news == null) {
         Box(
             modifier = Modifier
@@ -114,7 +129,7 @@ fun NewsDetailScreen(
                     )
                 }
                 Text(
-                    text = "Подробнее",
+                    text = "Подробнее о новости",
                     fontSize = 18.sp,
                     fontWeight = FontWeight.Bold,
                     color = Color.White,
@@ -122,7 +137,7 @@ fun NewsDetailScreen(
                 )
             }
 
-            // Основная фотография (над заголовком)
+            // Основная фотография (без фона)
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -132,8 +147,7 @@ fun NewsDetailScreen(
                 AsyncImage(
                     model = news!!.imageUrl,
                     contentDescription = "Main Photo",
-                    modifier = Modifier
-                        .fillMaxSize(),
+                    modifier = Modifier.fillMaxSize(),
                     contentScale = ContentScale.FillBounds
                 )
             }
@@ -168,16 +182,58 @@ fun NewsDetailScreen(
 
                 // Дополнительные фотографии (между подзаголовком и описанием или заголовком и описанием)
                 if (news!!.additionalPhotos.isNotEmpty()) {
+                    // Состояние для хранения загруженного битмапа
+                    var bitmap by remember { mutableStateOf<Bitmap?>(null) }
+
+                    // Невидимый AsyncImage для получения битмапа и размеров изображения
+                    AsyncImage(
+                        model = news!!.additionalPhotos[currentPhotoIndex],
+                        contentDescription = null,
+                        modifier = Modifier
+                            .size(1.dp)
+                            .clip(RoundedCornerShape(10.dp)),
+                        contentScale = ContentScale.Fit,
+                        onSuccess = { result ->
+                            bitmap = result.result.drawable.toBitmap()
+                            // Определяем, нужно ли применять фон
+                            bitmap?.let { bmp ->
+                                val imageAspectRatio = bmp.width.toFloat() / bmp.height.toFloat()
+                                // Если пропорции изображения отличаются от пропорций контейнера,
+                                // изображение не заполняет контейнер полностью
+                                shouldApplyBackground = imageAspectRatio != containerAspectRatio
+                            }
+                        },
+                        onError = {
+                            bitmap = null
+                            shouldApplyBackground = false
+                        }
+                    )
+
+                    // Обновляем доминирующий цвет при смене изображения
+                    LaunchedEffect(bitmap) {
+                        bitmap?.let { bmp ->
+                            if (bmp.width > 0 && bmp.height > 0) {
+                                // Используем оригинальный битмап для анализа, не создавая копию
+                                Palette.from(bmp).generate { palette ->
+                                    backgroundColor = palette?.dominantSwatch?.rgb?.let { Color(it) } ?: Color.Transparent
+                                }
+                            } else {
+                                backgroundColor = Color.Transparent
+                            }
+                        } ?: run {
+                            backgroundColor = Color.Transparent
+                        }
+                    }
+
                     Box(
                         modifier = Modifier
                             .fillMaxWidth()
                             .height(190.dp)
                             .clip(RoundedCornerShape(10.dp))
-                            .background(Color.LightGray)
+                            .background(if (shouldApplyBackground) backgroundColor else Color.Transparent)
                             .pointerInput(Unit) {
                                 detectHorizontalDragGestures(
                                     onDragEnd = {
-                                        // Определяем направление свайпа по конечному смещению
                                         if (offsetX < 0) { // Свайп влево
                                             if (currentPhotoIndex < news!!.additionalPhotos.size - 1) {
                                                 currentPhotoIndex++
@@ -191,26 +247,23 @@ fun NewsDetailScreen(
                                                 currentPhotoIndex = news!!.additionalPhotos.size - 1
                                             }
                                         }
-                                        // Сбрасываем смещение после завершения свайпа
                                         offsetX = 0f
                                     },
                                     onDragCancel = {
-                                        // Сбрасываем смещение, если свайп отменён
                                         offsetX = 0f
                                     }
                                 ) { _, dragAmount ->
-                                    // Обновляем смещение во время свайпа
                                     offsetX += dragAmount
                                 }
                             }
                     ) {
-                        // Используем Crossfade для плавного перехода между изображениями
+                        // Основное изображение
                         Crossfade(
                             targetState = news!!.additionalPhotos[currentPhotoIndex],
-                            animationSpec = tween(durationMillis = 600), // Замедляем анимацию до 600 мс
+                            animationSpec = tween(durationMillis = 600),
                             modifier = Modifier
                                 .fillMaxSize()
-                                .offset { IntOffset(animatedOffsetX.toInt(), 0) } // Применяем анимированное смещение
+                                .offset { IntOffset(animatedOffsetX.toInt(), 0) }
                                 .clip(RoundedCornerShape(10.dp))
                         ) { currentImageUrl ->
                             AsyncImage(
@@ -251,11 +304,10 @@ fun NewsDetailScreen(
                 Text(
                     text = news!!.content,
                     fontSize = 18.sp,
-                    color = Color(0xFF666666),
+                    color = Color.Black,
                     modifier = Modifier.padding(bottom = 16.dp)
                 )
             }
         }
     }
-
 }

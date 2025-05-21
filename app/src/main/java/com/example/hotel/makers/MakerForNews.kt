@@ -824,4 +824,3 @@ fun MakerForNews(
         }
     }
 }
-

@@ -30,6 +30,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -91,7 +92,7 @@ fun ServiceDetailScreen(
                     )
                 }
                 Text(
-                    text = "Подробнее",
+                    text = "Подробнее о акции",
                     fontSize = 18.sp,
                     fontWeight = FontWeight.Bold,
                     color = Color.White,
@@ -128,26 +129,28 @@ fun ServiceDetailScreen(
                     text = service!!.name.uppercase(),
                     fontSize = 24.sp,
                     fontWeight = FontWeight.Bold,
-                    color = Color.Black
+                    color = Color.Black,
+                    style = TextStyle(letterSpacing = 0.6.sp) // Добавляем небольшой интервал между буквами
                 )
 
-                Spacer(Modifier.height(10.dp))
+                Spacer(Modifier.height(8.dp)) // Уменьшаем пространство после заголовка
 
                 // Подзаголовок (если есть)
                 service!!.subTitle?.let { subtitle ->
                     Text(
                         text = subtitle,
                         fontSize = 18.sp,
+                        fontWeight = FontWeight.Medium,
                         color = Color(0xFF666666)
                     )
 
                 }
-
+                Spacer(Modifier.height(8.dp))
                 // Описание акции
                 Text(
                     text = service!!.description,
                     fontSize = 18.sp,
-                    color = Color(0xFF666666),
+                    color = Color.Black,
                     modifier = Modifier.padding(bottom = 16.dp)
                 )
             }
