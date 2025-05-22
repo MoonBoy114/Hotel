@@ -80,15 +80,7 @@ fun HomeScreen(viewModel: HotelViewModel, navController: NavHostController, modi
                             .height(30.dp)
                             .padding(start = 16.dp)
                     )
-                    Icon(
-                        painter = painterResource(id = R.drawable.info_icon),
-                        contentDescription = "About",
-                        modifier = Modifier
-                            .size(40.dp)
-                            .padding(end = 16.dp)
-                            .clickable { },
-                        tint = Color.White
-                    )
+
                 }
             }
         },
@@ -104,7 +96,9 @@ fun HomeScreen(viewModel: HotelViewModel, navController: NavHostController, modi
         ) {
             item {
                 Spacer(Modifier.height(16.dp))
+                // Проверка для гостя: если список акций пуст
                 if (userRole == "Guest" && services.isEmpty()) {
+                    Spacer(modifier = Modifier.height(10.dp))
                     Row(
                         modifier = Modifier
                             .fillMaxWidth()
@@ -112,13 +106,57 @@ fun HomeScreen(viewModel: HotelViewModel, navController: NavHostController, modi
                         verticalAlignment = Alignment.CenterVertically,
                         horizontalArrangement = Arrangement.Center
                     ) {
+                        Spacer(Modifier.height(30.dp))
+
                         Text(
                             text = "ПОКА НЕТ АКЦИЙ",
                             fontSize = 20.sp,
                             fontWeight = FontWeight.Bold,
+                            color = Color.Black
                         )
                     }
-                    Spacer(Modifier.height(80.dp))
+                    Spacer(Modifier.height(100.dp))
+                }
+                // Проверка для менеджера: если список акций пуст
+                else if (userRole == "Manager" && services.isEmpty()) {
+                    Column(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(vertical = 10.dp),
+                        horizontalAlignment = Alignment.CenterHorizontally
+                    ) {
+                        // Кнопка добавления акции
+                        IconButton(
+                            onClick = { navController.navigate("makerForService") },
+                            modifier = Modifier
+                                .clip(
+                                    RoundedCornerShape(
+                                        topStart = 30.dp,
+                                        topEnd = 30.dp,
+                                        bottomEnd = 5.dp,
+                                        bottomStart = 5.dp
+                                    )
+                                )
+                                .size(80.dp) // Квадратная кнопка
+
+                        ) {
+                            Icon(
+                                painter = painterResource(id = R.drawable.add_icon),
+                                contentDescription = "Add",
+                                modifier = Modifier.size(40.dp),
+                                tint = Color(0xFFF58D4D)
+                            )
+                        }
+                        Spacer(Modifier.height(10.dp))
+                        // Текст "ДОБАВЬТЕ ПЕРВУЮ АКЦИЮ"
+                        Text(
+                            text = "ДОБАВЬТЕ ПЕРВУЮ АКЦИЮ",
+                            fontSize = 20.sp,
+                            fontWeight = FontWeight.Bold,
+                            color = Color.Black
+                        )
+                    }
+                    Spacer(Modifier.height(30.dp))
                 }
             }
 
@@ -135,8 +173,23 @@ fun HomeScreen(viewModel: HotelViewModel, navController: NavHostController, modi
                             Box(
                                 modifier = Modifier
                                     .width(310.dp)
-                                    .background(Color.White, RoundedCornerShape(topStart = 30.dp, topEnd = 30.dp, bottomEnd = 20.dp, bottomStart = 20.dp))
-                                    .clip(RoundedCornerShape(topStart = 30.dp, topEnd = 30.dp, bottomEnd = 20.dp, bottomStart = 20.dp))
+                                    .background(
+                                        Color.White,
+                                        RoundedCornerShape(
+                                            topStart = 30.dp,
+                                            topEnd = 30.dp,
+                                            bottomEnd = 20.dp,
+                                            bottomStart = 20.dp
+                                        )
+                                    )
+                                    .clip(
+                                        RoundedCornerShape(
+                                            topStart = 30.dp,
+                                            topEnd = 30.dp,
+                                            bottomEnd = 20.dp,
+                                            bottomStart = 20.dp
+                                        )
+                                    )
                             ) {
                                 ServiceItem(
                                     service = service,
@@ -144,18 +197,24 @@ fun HomeScreen(viewModel: HotelViewModel, navController: NavHostController, modi
                                     onEdit = { navController.navigate("makerForService/${service.serviceId}") },
                                     onDelete = { viewModel.deleteService(service.serviceId) },
                                     onClick = { navController.navigate("serviceDetail/${service.serviceId}") }
-
                                 )
                             }
                         }
 
                         // Добавляем кнопку "+" в конец списка для Manager
-                        if (userRole == "Manager") {
+                        if (userRole == "Manager" && services.isNotEmpty()) {
                             item {
                                 IconButton(
                                     onClick = { navController.navigate("makerForService") },
                                     modifier = Modifier
-                                        .clip(RoundedCornerShape(topStart = 30.dp, topEnd = 30.dp, bottomEnd = 5.dp, bottomStart = 5.dp))
+                                        .clip(
+                                            RoundedCornerShape(
+                                                topStart = 30.dp,
+                                                topEnd = 30.dp,
+                                                bottomEnd = 5.dp,
+                                                bottomStart = 5.dp
+                                            )
+                                        )
                                         .width(80.dp)
                                         .height(132.dp)
                                 ) {
@@ -169,9 +228,11 @@ fun HomeScreen(viewModel: HotelViewModel, navController: NavHostController, modi
                             }
                         }
                     }
-                    Spacer(Modifier.height(16.dp))
+
                 }
             }
+
+
 
             // Список категорий
             val categories = listOf(

@@ -93,15 +93,7 @@ fun ProfileScreen(viewModel: HotelViewModel, navController: NavHostController, m
                             .height(30.dp)
                             .padding(start = 16.dp) // Отступ слева для логотипа
                     )
-                    Icon(
-                        painter = painterResource(id = R.drawable.info_icon),
-                        contentDescription = "About",
-                        modifier = Modifier
-                            .size(40.dp)
-                            .padding(end = 16.dp) // Отступ справа для иконки
-                            .clickable { },
-                        tint = Color.White
-                    )
+
                 }
             }
         },
