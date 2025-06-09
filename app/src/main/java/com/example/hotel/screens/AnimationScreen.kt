@@ -379,7 +379,7 @@ fun AnimationScreen(navController: NavHostController, modifier: Modifier = Modif
 fun Calendar(selectedDate: Int, onDateSelected: (Int) -> Unit) {
     val daysInMonth = 30 // Устанавливаем 30 дней
     val daysPerRow = 5 // 5 чисел в строке
-    val rows = 6 // 6 строк
+    val rows = 7 // 6 строк
 
     Column(
         modifier = Modifier

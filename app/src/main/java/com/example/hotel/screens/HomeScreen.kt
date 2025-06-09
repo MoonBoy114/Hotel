@@ -51,9 +51,7 @@ import com.example.hotel.R
 import com.example.hotel.data.Service
 import com.example.hotel.data.viewmodel.HotelViewModel
 
-
 data class Category(val imageRes: Int, val title: String)
-
 @Composable
 fun HomeScreen(viewModel: HotelViewModel, navController: NavHostController, modifier: Modifier = Modifier) {
     val currentUser by viewModel.currentUser.observeAsState()
@@ -80,7 +78,6 @@ fun HomeScreen(viewModel: HotelViewModel, navController: NavHostController, modi
                             .height(30.dp)
                             .padding(start = 16.dp)
                     )
-
                 }
             }
         },
@@ -88,153 +85,155 @@ fun HomeScreen(viewModel: HotelViewModel, navController: NavHostController, modi
             .fillMaxSize()
             .background(Color(0xFFF5F5F5))
     ) { paddingValues ->
-        LazyColumn(
+        Column(
             modifier = Modifier
                 .fillMaxSize()
                 .background(Color(0xFFF5F5F5))
                 .padding(paddingValues)
         ) {
-            item {
-                Spacer(Modifier.height(16.dp))
-                // Проверка для гостя: если список акций пуст
-                if (userRole == "Guest" && services.isEmpty()) {
-                    Spacer(modifier = Modifier.height(10.dp))
-                    Row(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(vertical = 10.dp),
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.Center
-                    ) {
-                        Spacer(Modifier.height(30.dp))
-
-                        Text(
-                            text = "ПОКА НЕТ АКЦИЙ",
-                            fontSize = 20.sp,
-                            fontWeight = FontWeight.Bold,
-                            color = Color.Black
-                        )
-                    }
-                    Spacer(Modifier.height(100.dp))
-                }
-                // Проверка для менеджера: если список акций пуст
-                else if (userRole == "Manager" && services.isEmpty()) {
-                    Column(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(vertical = 10.dp),
-                        horizontalAlignment = Alignment.CenterHorizontally
-                    ) {
-                        // Кнопка добавления акции
-                        IconButton(
-                            onClick = { navController.navigate("makerForService") },
+            // Верхняя часть: Прокручиваемый список акций
+            LazyColumn(
+                modifier = Modifier
+                    .weight(1f)// Занимает всё доступное пространство, оставляя место для категорий
+                    .fillMaxWidth()
+            ) {
+                item {
+                    Spacer(Modifier.height(16.dp))
+                    // Проверка для гостя: если список акций пуст
+                    if (userRole == "Guest" && services.isEmpty()) {
+                        Spacer(modifier = Modifier.height(10.dp))
+                        Row(
                             modifier = Modifier
-                                .clip(
-                                    RoundedCornerShape(
-                                        topStart = 30.dp,
-                                        topEnd = 30.dp,
-                                        bottomEnd = 5.dp,
-                                        bottomStart = 5.dp
-                                    )
-                                )
-                                .size(80.dp) // Квадратная кнопка
-
+                                .fillMaxWidth()
+                                .padding(vertical = 10.dp),
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.Center
                         ) {
-                            Icon(
-                                painter = painterResource(id = R.drawable.add_icon),
-                                contentDescription = "Add",
-                                modifier = Modifier.size(40.dp),
-                                tint = Color(0xFFF58D4D)
+                            Spacer(Modifier.height(30.dp))
+                            Text(
+                                text = "ПОКА НЕТ АКЦИЙ",
+                                fontSize = 20.sp,
+                                fontWeight = FontWeight.Bold,
+                                color = Color.Black
                             )
                         }
-                        Spacer(Modifier.height(10.dp))
-                        // Текст "ДОБАВЬТЕ ПЕРВУЮ АКЦИЮ"
-                        Text(
-                            text = "ДОБАВЬТЕ ПЕРВУЮ АКЦИЮ",
-                            fontSize = 20.sp,
-                            fontWeight = FontWeight.Bold,
-                            color = Color.Black
-                        )
+                        Spacer(Modifier.height(80.dp))
                     }
-                    Spacer(Modifier.height(30.dp))
-                }
-            }
-
-            // Список акций с горизонтальной прокруткой
-            if (userRole != "Guest" || services.isNotEmpty()) {
-                item {
-                    LazyRow(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(horizontal = 14.dp),
-                        horizontalArrangement = Arrangement.spacedBy(10.dp)
-                    ) {
-                        items(services) { service ->
-                            Box(
+                    // Проверка для менеджера: если список акций пуст
+                    else if (userRole == "Manager" && services.isEmpty()) {
+                        Column(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(vertical = 10.dp),
+                            horizontalAlignment = Alignment.CenterHorizontally
+                        ) {
+                            // Кнопка добавления акции
+                            IconButton(
+                                onClick = { navController.navigate("makerForService") },
                                 modifier = Modifier
-                                    .width(310.dp)
-                                    .background(
-                                        Color.White,
-                                        RoundedCornerShape(
-                                            topStart = 30.dp,
-                                            topEnd = 30.dp,
-                                            bottomEnd = 20.dp,
-                                            bottomStart = 20.dp
-                                        )
-                                    )
                                     .clip(
                                         RoundedCornerShape(
                                             topStart = 30.dp,
                                             topEnd = 30.dp,
-                                            bottomEnd = 20.dp,
-                                            bottomStart = 20.dp
+                                            bottomEnd = 5.dp,
+                                            bottomStart = 5.dp
                                         )
                                     )
+                                    .size(80.dp) // Квадратная кнопка
                             ) {
-                                ServiceItem(
-                                    service = service,
-                                    userRole = userRole,
-                                    onEdit = { navController.navigate("makerForService/${service.serviceId}") },
-                                    onDelete = { viewModel.deleteService(service.serviceId) },
-                                    onClick = { navController.navigate("serviceDetail/${service.serviceId}") }
+                                Icon(
+                                    painter = painterResource(id = R.drawable.add_icon),
+                                    contentDescription = "Add",
+                                    modifier = Modifier.size(40.dp),
+                                    tint = Color(0xFFF58D4D)
                                 )
                             }
+                            Spacer(Modifier.height(10.dp))
+                            // Текст "ДОБАВЬТЕ ПЕРВУЮ АКЦИЮ"
+                            Text(
+                                text = "ДОБАВЬТЕ ПЕРВУЮ АКЦИЮ",
+                                fontSize = 20.sp,
+                                fontWeight = FontWeight.Bold,
+                                color = Color.Black
+                            )
                         }
+                        Spacer(Modifier.height(30.dp))
+                    }
+                }
 
-                        // Добавляем кнопку "+" в конец списка для Manager
-                        if (userRole == "Manager" && services.isNotEmpty()) {
-                            item {
-                                IconButton(
-                                    onClick = { navController.navigate("makerForService") },
+                // Список акций с горизонтальной прокруткой
+                if (userRole != "Guest" || services.isNotEmpty()) {
+                    item {
+                        LazyRow(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(horizontal = 14.dp),
+                            horizontalArrangement = Arrangement.spacedBy(10.dp)
+                        ) {
+                            items(services) { service ->
+                                Box(
                                     modifier = Modifier
+                                        .width(310.dp)
+                                        .background(
+                                            Color.White,
+                                            RoundedCornerShape(
+                                                topStart = 30.dp,
+                                                topEnd = 30.dp,
+                                                bottomEnd = 20.dp,
+                                                bottomStart = 20.dp
+                                            )
+                                        )
                                         .clip(
                                             RoundedCornerShape(
                                                 topStart = 30.dp,
                                                 topEnd = 30.dp,
-                                                bottomEnd = 5.dp,
-                                                bottomStart = 5.dp
+                                                bottomEnd = 20.dp,
+                                                bottomStart = 20.dp
                                             )
                                         )
-                                        .width(80.dp)
-                                        .height(132.dp)
                                 ) {
-                                    Icon(
-                                        painter = painterResource(id = R.drawable.add_icon),
-                                        contentDescription = "Add",
-                                        modifier = Modifier.size(40.dp),
-                                        tint = Color(0xFFF58D4D)
+                                    ServiceItem(
+                                        service = service,
+                                        userRole = userRole,
+                                        onEdit = { navController.navigate("makerForService/${service.serviceId}") },
+                                        onDelete = { viewModel.deleteService(service.serviceId) },
+                                        onClick = { navController.navigate("serviceDetail/${service.serviceId}") }
                                     )
+                                }
+                            }
+
+                            // Добавляем кнопку "+" в конец списка для Manager
+                            if (userRole == "Manager" && services.isNotEmpty()) {
+                                item {
+                                    IconButton(
+                                        onClick = { navController.navigate("makerForService") },
+                                        modifier = Modifier
+                                            .clip(
+                                                RoundedCornerShape(
+                                                    topStart = 30.dp,
+                                                    topEnd = 30.dp,
+                                                    bottomEnd = 5.dp,
+                                                    bottomStart = 5.dp
+                                                )
+                                            )
+                                            .width(80.dp)
+                                            .height(132.dp)
+                                    ) {
+                                        Icon(
+                                            painter = painterResource(id = R.drawable.add_icon),
+                                            contentDescription = "Add",
+                                            modifier = Modifier.size(40.dp),
+                                            tint = Color(0xFFF58D4D)
+                                        )
+                                    }
                                 }
                             }
                         }
                     }
-
                 }
             }
 
-
-
-            // Список категорий
+            // Нижняя часть: Фиксированный список категорий
             val categories = listOf(
                 Category(R.drawable.restoran, "Рестораны"),
                 Category(R.drawable.room, "Номера"),
@@ -244,46 +243,53 @@ fun HomeScreen(viewModel: HotelViewModel, navController: NavHostController, modi
                 Category(R.drawable.spa_image, "SPA")
             )
 
-            items(categories.chunked(2)) { categoryPair ->
-                Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(horizontal = 14.dp),
-                    horizontalArrangement = Arrangement.spacedBy(8.dp)
-                ) {
-                    categoryPair.forEach { category ->
-                        Box(
-                            modifier = Modifier
-                                .clip(RoundedCornerShape(topStart = 30.dp, topEnd = 30.dp, bottomEnd = 5.dp, bottomStart = 5.dp))
-                                .weight(1f)
-                        ) {
-                            CategoryItem(
-                                imageRes = category.imageRes,
-                                title = category.title,
-                                onClick = {
-                                    if (category.title == "Номера") {
-                                        navController.navigate("rooms")
-                                    } else if (category.title == "Трансфер") {
-                                        navController.navigate("transfer")
-                                    } else if (category.title == "Анимации") {
-                                        navController.navigate("animation")
-                                    } else if (category.title == "Рестораны") {
-                                        navController.navigate("restaurant")
-                                    } else if (category.title == "Отели") {
-                                        navController.navigate("hotel")
-                                    } else if (category.title == "SPA") {
-                                        navController.navigate("spa")
+            LazyColumn(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .wrapContentHeight()
+                    .background(Color(0xFFF5F5F5))
+            ) {
+                items(categories.chunked(2)) { categoryPair ->
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(horizontal = 14.dp),
+                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        categoryPair.forEach { category ->
+                            Box(
+                                modifier = Modifier
+                                    .clip(RoundedCornerShape(topStart = 30.dp, topEnd = 30.dp, bottomEnd = 5.dp, bottomStart = 5.dp))
+                                    .weight(1f)
+                            ) {
+                                CategoryItem(
+                                    imageRes = category.imageRes,
+                                    title = category.title,
+                                    onClick = {
+                                        if (category.title == "Номера") {
+                                            navController.navigate("rooms")
+                                        } else if (category.title == "Трансфер") {
+                                            navController.navigate("transfer")
+                                        } else if (category.title == "Анимации") {
+                                            navController.navigate("animation")
+                                        } else if (category.title == "Рестораны") {
+                                            navController.navigate("restaurant")
+                                        } else if (category.title == "Отели") {
+                                            navController.navigate("hotel")
+                                        } else if (category.title == "SPA") {
+                                            navController.navigate("spa")
+                                        }
                                     }
-                                }
-                            )
+                                )
+                            }
+                        }
+
+                        if (categoryPair.size == 1) {
+                            Spacer(modifier = Modifier.weight(1f))
                         }
                     }
-
-                    if (categoryPair.size == 1) {
-                        Spacer(modifier = Modifier.weight(1f))
-                    }
+                    Spacer(modifier = Modifier.height(10.dp))
                 }
-                Spacer(modifier = Modifier.height(10.dp))
             }
         }
     }
@@ -340,7 +346,7 @@ fun ServiceItem(
     onClick: () -> Unit
 ) {
     var expanded by remember { mutableStateOf(false) }
-    var showDeleteDialog by remember { mutableStateOf(false) } // Состояние для диалога подтверждения
+    var showDeleteDialog by remember { mutableStateOf(false) }
     val hasSubtitle = service.subTitle.isNotEmpty()
 
     Column(
@@ -398,7 +404,7 @@ fun ServiceItem(
                             text = { Text("Удалить", color = Color.Red) },
                             onClick = {
                                 expanded = false
-                                showDeleteDialog = true // Показываем диалог вместо немедленного удаления
+                                showDeleteDialog = true
                             }
                         )
                     }
@@ -453,7 +459,7 @@ fun ServiceItem(
             onDismissRequest = { showDeleteDialog = false },
             title = {
                 Text(
-                    text = "Подтверждение удаления",
+                    text = "Удалить акцию?",
                     fontWeight = FontWeight.Bold,
                     fontSize = 18.sp
                 )
@@ -468,7 +474,7 @@ fun ServiceItem(
                 TextButton(
                     onClick = {
                         showDeleteDialog = false
-                        onDelete() // Вызываем удаление после подтверждения
+                        onDelete()
                     }
                 ) {
                     Text(
@@ -484,7 +490,7 @@ fun ServiceItem(
                 ) {
                     Text(
                         text = "Отмена",
-                        color = Color.Gray,
+                        color = Color(0xFFF58D4D),
                         fontSize = 16.sp
                     )
                 }

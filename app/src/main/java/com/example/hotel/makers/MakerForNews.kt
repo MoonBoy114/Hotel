@@ -32,6 +32,7 @@ import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.mutableStateOf
@@ -240,15 +241,12 @@ fun MakerForNews(
     }
 
     // Проверяем, были ли внесены изменения
-    val hasChanges by remember(title, subTitle, description, imageUrl, additionalPhotos) {
-        mutableStateOf(
-            title != originalTitle ||
-                    subTitle != originalSubTitle ||
-                    description != originalDescription ||
-                    imageUrl != originalImageUrl ||
-                    !additionalPhotos.toList().containsAll(originalAdditionalPhotos) ||
-                    !originalAdditionalPhotos.toList().containsAll(additionalPhotos)
-        )
+    val hasChanges by derivedStateOf {
+        title != originalTitle ||
+                subTitle != originalSubTitle ||
+                description != originalDescription ||
+                imageUrl != originalImageUrl ||
+                additionalPhotos.toList() != originalAdditionalPhotos.toList()
     }
 
     val pickAdditionalImagesLauncher = rememberLauncherForActivityResult(

@@ -1,5 +1,6 @@
 package com.example.hotel.screens
 
+import android.util.Log
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.Crossfade
 import androidx.compose.animation.core.animateFloatAsState
@@ -72,21 +73,16 @@ fun RoomScreen(
         visibleRooms.addAll(rooms)
     }
 
-    LaunchedEffect(bookings) {
-        viewModel.loadRooms()
+    // Загружаем комнаты, бронирования и пользователей при входе пользователя
+    LaunchedEffect(currentUser) {
+        viewModel.loadRoomsAndBookings() // Оставляем только этот вызов
+        viewModel.loadUsers()
+        Log.d("RoomScreen", "After loading: bookings=$bookings, users=$users")
     }
 
-    // Загружаем данные при открытии экрана
-    LaunchedEffect(currentUser) {
-        viewModel.loadRooms()
-        viewModel.loadUsers()
-        if (userRole == "Manager") {
-            viewModel.loadAllBookings()
-        } else {
-            currentUser?.userId?.let { userId ->
-                viewModel.loadBookings(userId)
-            }
-        }
+    // Дополнительно обновляем UI, когда пользователи или бронирования изменяются
+    LaunchedEffect(users, bookings) {
+        Log.d("RoomScreen", "Users or bookings updated: bookings=$bookings, users=$users")
     }
 
     // Состояния для фильтров
@@ -607,7 +603,6 @@ fun RoomScreen(
                                     val roomPrice = room.price
                                     if (userMoney >= roomPrice) {
                                         viewModel.bookRoom(room, user.userId, checkInDate, checkOutDate, roomPrice)
-                                        viewModel.loadRooms()
                                         snackbarMessage = "Успешно забронирован номер! Перейдите в Профиль для подробной информации."
                                     } else {
                                         val shortfall = roomPrice - userMoney
@@ -627,7 +622,6 @@ fun RoomScreen(
         }
     }
 }
-
 @Composable
 fun RoomItem(
     room: Room,
@@ -641,12 +635,21 @@ fun RoomItem(
     modifier: Modifier = Modifier
 ) {
     val booking = bookings.find { it.roomId == room.roomId }
-    val bookedByUser = if (booking != null) { users.find { it.userId == booking.userId }?.name ?: "Неизвестный пользователь" } else { null }
+    val bookedByUser = if (booking != null) {
+        if (users.isEmpty()) {
+            "Loading..." // Отображаем "Loading..." пока пользователи не загружены
+        } else {
+            users.find { it.userId == booking.userId }?.name ?: "Неизвестный пользователь"
+        }
+    } else {
+        null
+    }
     var showMenu by remember { mutableStateOf(false) }
 
-    val allPhotos = remember(room) {
-        listOf(room.imageUrl) + room.additionalPhotos
-    }
+    // Логирование для отладки
+    Log.d("RoomItem", "Room ${room.roomId}: booking=$booking, bookedByUser=$bookedByUser, userRole=$userRole")
+
+    val allPhotos = remember(room) { listOf(room.imageUrl) + room.additionalPhotos }
     var currentPhotoIndex by remember { mutableStateOf(0) }
     var offsetX by remember { mutableStateOf(0f) }
     val animatedOffsetX by animateFloatAsState(
@@ -689,12 +692,8 @@ fun RoomItem(
                                 }
                                 offsetX = 0f
                             },
-                            onDragCancel = {
-                                offsetX = 0f
-                            }
-                        ) { _, dragAmount ->
-                            offsetX += dragAmount
-                        }
+                            onDragCancel = { offsetX = 0f }
+                        ) { _, dragAmount -> offsetX += dragAmount }
                     }
             ) {
                 Crossfade(
@@ -764,20 +763,20 @@ fun RoomItem(
                             modifier = Modifier.background(Color.White)
                         ) {
                             DropdownMenuItem(
-                                text = { Text("Изменить", fontSize = 16.sp, color = if (bookedByUser == null) Color(0xFFF58D4D) else Color.Gray) },
+                                text = { Text("Изменить", fontSize = 16.sp, color = if (booking == null) Color(0xFFF58D4D) else Color.Gray) },
                                 onClick = {
                                     showMenu = false
                                     onEdit()
                                 },
-                                enabled = bookedByUser == null
+                                enabled = booking == null
                             )
                             DropdownMenuItem(
-                                text = { Text("Удалить", fontSize = 16.sp, color = if (bookedByUser == null) Color.Red else Color.Gray) },
+                                text = { Text("Удалить", fontSize = 16.sp, color = if (booking == null) Color.Red else Color.Gray) },
                                 onClick = {
                                     showMenu = false
                                     onDelete()
                                 },
-                                enabled = bookedByUser == null
+                                enabled = booking == null
                             )
                         }
                     }
@@ -846,7 +845,7 @@ fun RoomItem(
             Spacer(Modifier.height(16.dp))
 
             if (userRole == "Manager") {
-                if (bookedByUser != null) {
+                if (booking != null || room.isBooked) { // Проверяем и booking, и isBooked
                     Text(
                         text = "Забронировано: $bookedByUser",
                         fontSize = 14.sp,
@@ -874,7 +873,7 @@ fun RoomItem(
                         )
                     }
                 }
-            } else if (bookedByUser == null) {
+            } else if (booking == null && !room.isBooked) {
                 Button(
                     onClick = onSelect,
                     modifier = Modifier
@@ -895,7 +894,6 @@ fun RoomItem(
         }
     }
 }
-
 @Composable
 fun highlightText(text: String, query: String): AnnotatedString {
     if (query.isBlank()) {

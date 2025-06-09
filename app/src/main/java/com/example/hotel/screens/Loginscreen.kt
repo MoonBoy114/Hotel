@@ -44,9 +44,6 @@ import kotlinx.coroutines.delay
 
 
 val RivieraOrange = Color(0xFFF58D4D)
-
-
-
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun LoginScreen(viewModel: HotelViewModel, navController: NavHostController) {

@@ -53,14 +53,14 @@ import kotlinx.coroutines.launch
 fun AboutMe(viewModel: HotelViewModel, navController: NavHostController) {
     val currentUser by viewModel.currentUser.observeAsState()
 
-// Локальные состояния для редактирования данных
+    // Локальные состояния для редактирования данных
     var name by remember { mutableStateOf(currentUser?.name ?: "") }
     var phone by remember { mutableStateOf(
         TextFieldValue(viewModel.formatPhoneNumber(currentUser?.phone ?: ""))
     ) }
     var email by remember { mutableStateOf(currentUser?.email ?: "") }
 
-// Исходные значения для сравнения
+    // Исходные значения для сравнения
     val initialName = currentUser?.name ?: ""
     val initialPhone = viewModel.formatPhoneNumber(currentUser?.phone ?: "")
     val initialEmail = currentUser?.email ?: ""
@@ -103,8 +103,19 @@ fun AboutMe(viewModel: HotelViewModel, navController: NavHostController) {
         return TextRange(cursorPos.coerceAtMost(formatted.length))
     }
 
-// Валидация полей
-    val isNameValid by remember(name) { mutableStateOf(name.trim().isNotEmpty()) }
+    // Валидация полей
+    val isNameEmpty by remember(name) { mutableStateOf(name.trim().isEmpty()) }
+    val isNameTooShort by remember(name) { mutableStateOf(name.trim().length <= 2) }
+    val isNameInvalidStart by remember(name) {
+        mutableStateOf(
+            name.firstOrNull()?.let { firstChar ->
+                !firstChar.isLetter() || !firstChar.toString().matches(Regex("[A-Za-zА-Яа-я]"))
+            } ?: true // Если имя пустое, считаем, что начало некорректно
+        )
+    }
+    val isNameValid by remember(name) {
+        mutableStateOf(!isNameEmpty && !isNameTooShort && !isNameInvalidStart)
+    }
     val isPhoneValid by remember(phone) {
         mutableStateOf(viewModel.cleanPhoneNumber(phone.text).length >= 11)
     }
@@ -112,7 +123,7 @@ fun AboutMe(viewModel: HotelViewModel, navController: NavHostController) {
         mutableStateOf(email.isEmpty() || android.util.Patterns.EMAIL_ADDRESS.matcher(email).matches())
     }
 
-// Проверяем, были ли изменения и валидны ли данные
+    // Проверяем, были ли изменения и валидны ли данные
     val hasChanges by remember(name, phone, email) {
         mutableStateOf(
             (name != initialName || phone.text != initialPhone || email != initialEmail) &&
@@ -120,10 +131,10 @@ fun AboutMe(viewModel: HotelViewModel, navController: NavHostController) {
         )
     }
 
-// Состояние для диалога подтверждения выхода
+    // Состояние для диалога подтверждения выхода
     var showLogoutDialog by remember { mutableStateOf(false) }
 
-// Для отображения Snackbar
+    // Для отображения Snackbar
     val snackbarHostState = remember { SnackbarHostState() }
     val coroutineScope = rememberCoroutineScope()
 
@@ -170,7 +181,7 @@ fun AboutMe(viewModel: HotelViewModel, navController: NavHostController) {
                     Snackbar(
                         modifier = Modifier
                             .padding(16.dp),
-                        containerColor = Color(0xFFF58D4D), // Используем containerColor вместо background
+                        containerColor = Color(0xFFF58D4D),
                         shape = RoundedCornerShape(10.dp),
                         content = {
                             Text(
@@ -195,12 +206,12 @@ fun AboutMe(viewModel: HotelViewModel, navController: NavHostController) {
                 .padding(paddingValues)
                 .padding(horizontal = 16.dp),
             horizontalAlignment = Alignment.CenterHorizontally,
-            verticalArrangement = Arrangement.SpaceBetween // Кнопки будут внизу
+            verticalArrangement = Arrangement.SpaceBetween
         ) {
             Column(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .weight(1f), // Занимает доступное пространство, чтобы кнопки были внизу
+                    .weight(1f),
                 horizontalAlignment = Alignment.CenterHorizontally
             ) {
                 Spacer(Modifier.height(32.dp))
@@ -260,13 +271,32 @@ fun AboutMe(viewModel: HotelViewModel, navController: NavHostController) {
                                 modifier = Modifier.size(16.dp)
                             )
                         }
-                        if (!isNameValid) {
-                            Text(
-                                text = "Имя не может быть пустым",
-                                fontSize = 12.sp,
-                                color = Color.Red,
-                                modifier = Modifier.padding(top = 4.dp)
-                            )
+                        // Отображение ошибки в зависимости от причины
+                        when {
+                            isNameEmpty -> {
+                                Text(
+                                    text = "Имя не может быть пустым",
+                                    fontSize = 12.sp,
+                                    color = Color.Red,
+                                    modifier = Modifier.padding(top = 4.dp)
+                                )
+                            }
+                            isNameTooShort -> {
+                                Text(
+                                    text = "Имя должно быть длиннее 2 букв",
+                                    fontSize = 12.sp,
+                                    color = Color.Red,
+                                    modifier = Modifier.padding(top = 4.dp)
+                                )
+                            }
+                            isNameInvalidStart -> {
+                                Text(
+                                    text = "Имя должно начинаться с буквы (русской или английской)",
+                                    fontSize = 12.sp,
+                                    color = Color.Red,
+                                    modifier = Modifier.padding(top = 4.dp)
+                                )
+                            }
                         }
                     }
 
@@ -398,7 +428,7 @@ fun AboutMe(viewModel: HotelViewModel, navController: NavHostController) {
             Column(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(bottom = 16.dp) // Отступ снизу
+                    .padding(bottom = 16.dp)
             ) {
                 // Кнопка "Сохранить"
                 Button(
@@ -414,20 +444,17 @@ fun AboutMe(viewModel: HotelViewModel, navController: NavHostController) {
                                 // Показываем сообщение об успешном сохранении
                                 coroutineScope.launch {
                                     snackbarHostState.showSnackbar("Данные успешно сохранены", duration = SnackbarDuration.Indefinite)
-
                                 }
                             }
-                        } else {
-                            // Если данные некорректны, сообщения об ошибках уже видны под полями
                         }
                     },
                     modifier = Modifier
                         .fillMaxWidth()
                         .height(48.dp),
-                    enabled = hasChanges, // Кнопка активна только при изменениях и валидных данных
+                    enabled = hasChanges,
                     colors = ButtonDefaults.buttonColors(
                         containerColor = Color(0xFFF58D4D),
-                        disabledContainerColor = Color(0xFFB0B0B0) // Серый цвет для неактивной кнопки
+                        disabledContainerColor = Color(0xFFB0B0B0)
                     ),
                     shape = RoundedCornerShape(10.dp)
                 ) {
@@ -510,5 +537,4 @@ fun AboutMe(viewModel: HotelViewModel, navController: NavHostController) {
             }
         }
     }
-
 }

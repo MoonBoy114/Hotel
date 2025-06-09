@@ -13,7 +13,6 @@ import com.example.hotel.data.Service
 import com.example.hotel.data.User
 import com.example.hotel.data.entity.RoomType
 import com.example.hotel.data.repository.HotelRepository
-import com.example.hotel.screens.money
 import io.appwrite.Query
 import io.appwrite.exceptions.AppwriteException
 import kotlinx.coroutines.Dispatchers
@@ -76,27 +75,22 @@ class HotelViewModel(
         return "+$code ($part1) $part2-$part3-$part4"
     }
 
+    // Вход пользователя
     fun loginUser(email: String, password: String) {
         viewModelScope.launch {
             try {
-                // Ищем пользователя по email
                 val user = repository.getUserByEmail(email)
                 if (user == null) {
                     _errorMessage.value = "Пользователь с таким email не найден"
                     return@launch
                 }
-
-                // Сравниваем пароль
                 if (user.passwordHash != password) {
                     _errorMessage.value = "Неверный пароль"
                     return@launch
                 }
-
-                // Если email и пароль совпадают, "входим" в систему
                 _currentUser.value = user
-                loadBookings(user.userId)
                 loadNews()
-                loadRooms()
+                loadRoomsAndBookings() // Используем только loadRoomsAndBookings
                 loadServices()
                 loadUsers()
                 checkManagerRole(user.userId)
@@ -106,6 +100,7 @@ class HotelViewModel(
         }
     }
 
+    // Обновление данных пользователя
     fun updateUser(user: User) {
         viewModelScope.launch {
             try {
@@ -115,14 +110,15 @@ class HotelViewModel(
                     email = user.email,
                     phone = user.phone
                 )
-
                 _currentUser.value = user
+                loadUsers() // Обновляем список пользователей
             } catch (e: Exception) {
                 _errorMessage.value = "Ошибка обновления данных: ${e.message}"
             }
         }
     }
 
+    // Регистрация нового пользователя
     fun registerUser(name: String, email: String, phone: String, password: String) {
         viewModelScope.launch {
             try {
@@ -132,7 +128,6 @@ class HotelViewModel(
                     return@launch
                 }
 
-                // Проверяем email
                 val emailResult = isEmailTaken(email)
                 emailResult.onSuccess { emailTaken ->
                     if (emailTaken) {
@@ -140,7 +135,6 @@ class HotelViewModel(
                         return@launch
                     }
 
-                    // Проверяем телефон
                     val phoneResult = isPhoneTaken(phone)
                     phoneResult.onSuccess { phoneTaken ->
                         if (phoneTaken) {
@@ -148,22 +142,19 @@ class HotelViewModel(
                             return@launch
                         }
 
-                        // Если email и телефон не заняты, продолжаем регистрацию
                         val cleanedPhone = cleanPhoneNumber(phone)
                         val user = User(
-                            userId = "unique()", // Appwrite сгенерирует ID
+                            userId = "unique()",
                             name = name,
                             email = email,
                             phone = cleanedPhone,
-                            passwordHash = password, // Сохраняем пароль в открытом виде
+                            passwordHash = password,
                             role = "Guest"
                         )
                         val userId = repository.insertUser(user)
-                        // После регистрации сразу "входим" в систему
                         _currentUser.value = user.copy(userId = userId)
-                        loadBookings(userId)
                         loadNews()
-                        loadRooms()
+                        loadRoomsAndBookings()
                         loadServices()
                         loadUsers()
                         checkManagerRole(userId)
@@ -179,47 +170,40 @@ class HotelViewModel(
         }
     }
 
+    // Проверка, занят ли email
     suspend fun isEmailTaken(email: String): Result<Boolean> = withContext(Dispatchers.IO) {
-        println("isEmailTaken: Начало проверки email: $email")
         try {
-            println("isEmailTaken: Выполняем запрос к Appwrite")
             val response = repository.databases.listDocuments(
                 databaseId = HotelRepository.DATABASE_ID,
                 collectionId = HotelRepository.USERS_COLLECTION_ID,
-                queries = listOf(Query.equal("email", email)) // Используем Query.equal
+                queries = listOf(Query.equal("email", email))
             )
-            println("isEmailTaken: Запрос успешен, documents: ${response.documents.size}")
             Result.success(response.documents.isNotEmpty())
         } catch (e: AppwriteException) {
-            println("isEmailTaken: Ошибка Appwrite: ${e.message}, код: ${e.code}")
             Result.failure(e)
         } catch (e: Exception) {
-            println("isEmailTaken: Неожиданная ошибка: ${e.message}")
             Result.failure(e)
         }
     }
 
+    // Проверка, занят ли телефон
     suspend fun isPhoneTaken(phone: String): Result<Boolean> = withContext(Dispatchers.IO) {
-        println("isPhoneTaken: Начало проверки телефона: $phone")
         try {
             val cleanedPhone = cleanPhoneNumber(phone)
-            println("isPhoneTaken: Выполняем запрос к Appwrite, cleanedPhone: $cleanedPhone")
             val response = repository.databases.listDocuments(
                 databaseId = HotelRepository.DATABASE_ID,
                 collectionId = HotelRepository.USERS_COLLECTION_ID,
-                queries = listOf(Query.equal("phone", cleanedPhone)) // Используем Query.equal
+                queries = listOf(Query.equal("phone", cleanedPhone))
             )
-            println("isPhoneTaken: Запрос успешен, documents: ${response.documents.size}")
             Result.success(response.documents.isNotEmpty())
         } catch (e: AppwriteException) {
-            println("isPhoneTaken: Ошибка Appwrite: ${e.message}, код: ${e.code}")
             Result.failure(e)
         } catch (e: Exception) {
-            println("isPhoneTaken: Неожиданная ошибка: ${e.message}")
             Result.failure(e)
         }
     }
 
+    // Проверка роли менеджера
     private fun checkManagerRole(userId: String) {
         viewModelScope.launch {
             try {
@@ -231,10 +215,10 @@ class HotelViewModel(
         }
     }
 
+    // Выход из системы
     fun logout() {
         viewModelScope.launch {
             try {
-                // Просто очищаем данные пользователя
                 _currentUser.value = null
                 _bookings.value = emptyList()
                 _news.value = emptyList()
@@ -248,7 +232,7 @@ class HotelViewModel(
         }
     }
 
-    // Метод для бронирования номера с проверкой баланса
+    // Бронирование комнаты
     fun bookRoom(
         room: Room,
         userId: String,
@@ -263,23 +247,19 @@ class HotelViewModel(
                     "bookRoom called with roomId: ${room.roomId}, userId: $userId, checkIn: $checkInDate, checkOut: $checkOutDate, money: $currentMoney"
                 )
 
-                // Проверяем баланс
                 if (currentMoney < room.price) {
                     val shortfall = room.price - currentMoney
-                    _errorMessage.value =
-                        "Недостаточно средств для бронирования. Не хватает: ${shortfall.toInt()} ₽"
+                    _errorMessage.value = "Недостаточно средств. Не хватает: ${shortfall.toInt()} ₽"
                     Log.e("HotelViewModel", "Insufficient funds. Shortfall: ${shortfall.toInt()} ₽")
                     return@launch
                 }
 
-                // Проверяем, не забронирована ли уже комната
                 if (room.isBooked) {
-                    _errorMessage.value = "Эта комната уже забронирована"
+                    _errorMessage.value = "Комната уже забронирована"
                     Log.e("HotelViewModel", "Room ${room.roomId} is already booked")
                     return@launch
                 }
 
-                // Создаём бронирование
                 val booking = Booking(
                     bookingId = "unique()",
                     userId = userId,
@@ -289,29 +269,14 @@ class HotelViewModel(
                     totalPrice = room.price.toDouble()
                 )
 
-                // Добавляем бронирование
                 Log.d("HotelViewModel", "Inserting booking: $booking")
                 repository.insertBooking(booking)
 
-                // Загружаем бронирования в зависимости от роли пользователя
-                val userRole = _currentUser.value?.role ?: "Guest"
-                if (userRole == "Manager") {
-                    loadAllBookings()
-                } else {
-                    loadBookings(userId)
-                }
-
-                // Обновляем статус комнаты на "забронировано"
                 Log.d("HotelViewModel", "Marking room as booked: ${room.roomId}")
-                repository.updateRoom(
-                    roomId = room.roomId,
-                    isBooked = true
-                )
-                loadRooms()
+                repository.updateRoom(roomId = room.roomId, isBooked = true)
 
-                // Обновляем баланс пользователя
-                money -= room.price.toDouble()
-                Log.d("HotelViewModel", "Booking successful. New balance: $money")
+                Log.d("HotelViewModel", "Booking successful. New balance: ${currentMoney - room.price}")
+                loadRoomsAndBookings()
             } catch (e: Exception) {
                 _errorMessage.value = "Ошибка бронирования: ${e.message}"
                 Log.e("HotelViewModel", "Booking error: ${e.message}", e)
@@ -319,6 +284,66 @@ class HotelViewModel(
         }
     }
 
+    // Загрузка комнат и бронирований
+    fun loadRoomsAndBookings() {
+        viewModelScope.launch {
+            try {
+                Log.d("HotelViewModel", "Starting loadRoomsAndBookings")
+                val formatter = DateTimeFormatter.ofPattern("dd.MM.yyyy")
+                val currentDate = LocalDate.now().format(formatter)
+                Log.d("HotelViewModel", "Current date: $currentDate")
+                val allBookings = repository.getAllBookings()
+                Log.d("HotelViewModel", "All bookings: $allBookings")
+                val roomList = repository.getAllRooms()
+
+                roomList.forEach { room ->
+                    val booking = allBookings.find { it.roomId == room.roomId }
+                    if (booking != null && room.isBooked) {
+                        Log.d(
+                            "HotelViewModel",
+                            "Checking booking for room ${room.roomId}: checkOutDate=${booking.checkOutDate}"
+                        )
+                        if (currentDate >= booking.checkOutDate) {
+                            Log.d(
+                                "HotelViewModel",
+                                "Booking ${booking.bookingId} expired for room ${room.roomId}. Current date: $currentDate, CheckOutDate: ${booking.checkOutDate}"
+                            )
+                            repository.updateRoom(roomId = room.roomId, isBooked = false)
+                            repository.deleteBooking(booking.bookingId)
+                            Log.d(
+                                "HotelViewModel",
+                                "Booking ${booking.bookingId} deleted. Room ${room.roomId} is now available."
+                            )
+                        }
+                    }
+                }
+
+                _rooms.value = repository.getAllRooms()
+                Log.d("HotelViewModel", "Updated rooms: ${_rooms.value}")
+
+                val userRole = _currentUser.value?.role ?: "Guest"
+                if (userRole == "Manager") {
+                    val bookingList = repository.getAllBookings()
+                    Log.d("HotelViewModel", "Loaded all bookings for manager: $bookingList")
+                    _bookings.value = bookingList
+                } else {
+                    val userId = _currentUser.value?.userId
+                    if (userId != null) {
+                        val bookingList = repository.getBookingsByUser(userId)
+                        Log.d("HotelViewModel", "Loaded bookings for user $userId: $bookingList")
+                        _bookings.value = bookingList
+                    } else {
+                        _bookings.value = emptyList()
+                    }
+                }
+            } catch (e: Exception) {
+                Log.e("HotelViewModel", "Error in loadRoomsAndBookings: ${e.message}", e)
+                _errorMessage.value = e.message
+            }
+        }
+    }
+
+    // Добавление новости
     fun addNews(news: News) {
         viewModelScope.launch {
             try {
@@ -352,6 +377,7 @@ class HotelViewModel(
         }
     }
 
+    // Обновление новости
     fun updateNews(news: News) {
         viewModelScope.launch {
             try {
@@ -392,6 +418,7 @@ class HotelViewModel(
         }
     }
 
+    // Удаление новости
     fun deleteNews(newsId: String) {
         viewModelScope.launch {
             try {
@@ -431,6 +458,7 @@ class HotelViewModel(
         }
     }
 
+    // Получение новости по ID
     suspend fun getNewsById(newsId: String): News? {
         return try {
             repository.getNewsById(newsId)
@@ -440,6 +468,7 @@ class HotelViewModel(
         }
     }
 
+    // Загрузка новостей
     fun loadNews() {
         viewModelScope.launch {
             try {
@@ -453,16 +482,17 @@ class HotelViewModel(
         }
     }
 
+    // Загрузка комнат (оставляем для совместимости, но предпочтительно использовать loadRoomsAndBookings)
     fun loadRooms() {
         viewModelScope.launch {
             try {
                 Log.d("HotelViewModel", "Starting loadRooms")
-                val roomList = repository.getAllRooms()
                 val formatter = DateTimeFormatter.ofPattern("dd.MM.yyyy")
                 val currentDate = LocalDate.now().format(formatter)
                 Log.d("HotelViewModel", "Current date: $currentDate")
-                val allBookings = repository.getAllBookings() // Получаем все бронирования
+                val allBookings = repository.getAllBookings()
                 Log.d("HotelViewModel", "All bookings: $allBookings")
+                val roomList = repository.getAllRooms()
 
                 roomList.forEach { room ->
                     val booking = allBookings.find { it.roomId == room.roomId }
@@ -471,14 +501,13 @@ class HotelViewModel(
                             "HotelViewModel",
                             "Checking booking for room ${room.roomId}: checkOutDate=${booking.checkOutDate}"
                         )
-                        // Проверяем, совпадает ли текущая дата с checkOutDate или дата уже прошла
                         if (currentDate >= booking.checkOutDate) {
                             Log.d(
                                 "HotelViewModel",
                                 "Booking ${booking.bookingId} expired for room ${room.roomId}. Current date: $currentDate, CheckOutDate: ${booking.checkOutDate}"
                             )
                             repository.updateRoom(roomId = room.roomId, isBooked = false)
-                            repository.deleteBooking(booking.bookingId) // Удаляем истёкшее бронирование
+                            repository.deleteBooking(booking.bookingId)
                             Log.d(
                                 "HotelViewModel",
                                 "Booking ${booking.bookingId} deleted. Room ${room.roomId} is now available."
@@ -487,19 +516,8 @@ class HotelViewModel(
                     }
                 }
 
-                // Обновляем список комнат после проверки
                 _rooms.value = repository.getAllRooms()
                 Log.d("HotelViewModel", "Updated rooms: ${_rooms.value}")
-
-                // Обновляем список бронирований после удаления истёкших бронирований
-                val userRole = _currentUser.value?.role ?: "Guest"
-                val userId = _currentUser.value?.userId
-                if (userRole == "Manager") {
-                    loadAllBookings()
-                } else if (userId != null) {
-                    loadBookings(userId) // Обновляем бронирования для текущего пользователя
-                }
-                Log.d("HotelViewModel", "Updated bookings after loadRooms: ${_bookings.value}")
             } catch (e: Exception) {
                 Log.e("HotelViewModel", "Error in loadRooms: ${e.message}", e)
                 _errorMessage.value = e.message
@@ -507,6 +525,7 @@ class HotelViewModel(
         }
     }
 
+    // Добавление комнаты
     fun insertRoom(room: Room) {
         viewModelScope.launch {
             try {
@@ -541,13 +560,14 @@ class HotelViewModel(
                 }
 
                 repository.insertRoom(room)
-                loadRooms()
+                loadRoomsAndBookings()
             } catch (e: Exception) {
                 _errorMessage.value = e.message
             }
         }
     }
 
+    // Обновление комнаты
     fun updateRoom(room: Room) {
         viewModelScope.launch {
             try {
@@ -592,19 +612,19 @@ class HotelViewModel(
                     additionalPhotos = room.additionalPhotos,
                     isBooked = room.isBooked
                 )
-                loadRooms()
+                loadRoomsAndBookings()
             } catch (e: Exception) {
                 _errorMessage.value = e.message
             }
         }
     }
 
+    // Удаление комнаты
     fun deleteRoom(roomId: String) {
         viewModelScope.launch {
             try {
                 val room = _rooms.value?.find { it.roomId == roomId }
                     ?: throw IllegalStateException("Номер с ID $roomId не найден")
-                // Удаляем основное изображение
                 val mainImageId = room.imageUrl.substringAfter("files/").substringBefore("/view")
                 try {
                     HotelApp.storage.deleteFile(bucketId = "images", fileId = mainImageId)
@@ -616,7 +636,6 @@ class HotelViewModel(
                     )
                     setErrorMessage("Не удалось удалить основное изображение номера: ${e.message}")
                 }
-                // Удаляем дополнительные фотографии
                 room.additionalPhotos.forEach { photoUrl ->
                     val photoId = photoUrl.substringAfter("files/").substringBefore("/view")
                     try {
@@ -633,10 +652,9 @@ class HotelViewModel(
                         setErrorMessage("Не удалось удалить дополнительное изображение номера: ${e.message}")
                     }
                 }
-                // Удаляем запись о номере из базы данных
                 repository.deleteRoom(roomId)
                 Log.d("HotelViewModel", "Номер успешно удалён: $roomId")
-                loadRooms()
+                loadRoomsAndBookings()
             } catch (e: AppwriteException) {
                 Log.e("HotelViewModel", "Ошибка удаления номера: ${e.message}, код: ${e.code}")
                 setErrorMessage("Ошибка удаления номера: ${e.message}")
@@ -647,6 +665,7 @@ class HotelViewModel(
         }
     }
 
+    // Получение акции по ID
     suspend fun getServiceById(serviceId: String): Service? {
         return try {
             repository.getServiceById(serviceId)
@@ -657,6 +676,7 @@ class HotelViewModel(
         }
     }
 
+    // Загрузка акций
     fun loadServices() {
         viewModelScope.launch {
             try {
@@ -668,6 +688,7 @@ class HotelViewModel(
         }
     }
 
+    // Добавление акции
     fun insertService(service: Service) {
         viewModelScope.launch {
             try {
@@ -692,6 +713,7 @@ class HotelViewModel(
         }
     }
 
+    // Обновление акции
     fun updateService(service: Service) {
         viewModelScope.launch {
             try {
@@ -722,6 +744,7 @@ class HotelViewModel(
         }
     }
 
+    // Удаление акции
     fun deleteService(serviceId: String) {
         viewModelScope.launch {
             try {
@@ -733,17 +756,20 @@ class HotelViewModel(
         }
     }
 
+    // Добавление бронирования
     fun addBooking(booking: Booking) {
         viewModelScope.launch {
             try {
                 repository.insertBooking(booking)
                 _currentUser.value?.userId?.let { loadBookings(it) }
+                loadRoomsAndBookings()
             } catch (e: Exception) {
                 _errorMessage.value = e.message
             }
         }
     }
 
+    // Обновление бронирования
     fun updateBooking(booking: Booking) {
         viewModelScope.launch {
             try {
@@ -756,35 +782,35 @@ class HotelViewModel(
                     totalPrice = booking.totalPrice
                 )
                 _currentUser.value?.userId?.let { loadBookings(it) }
+                loadRoomsAndBookings()
             } catch (e: Exception) {
                 _errorMessage.value = e.message
             }
         }
     }
 
+    // Удаление бронирования
     fun deleteBooking(bookingId: String) {
         viewModelScope.launch {
             try {
-                // Находим бронирование, чтобы получить roomId
                 val booking = _bookings.value?.find { it.bookingId == bookingId }
                     ?: throw IllegalStateException("Бронирование с ID $bookingId не найдено")
 
-                // Удаляем бронирование
                 repository.deleteBooking(bookingId)
                 _currentUser.value?.userId?.let { loadBookings(it) }
 
-                // Сбрасываем статус isBooked у комнаты
                 repository.updateRoom(
                     roomId = booking.roomId,
                     isBooked = false
                 )
-                loadRooms()
+                loadRoomsAndBookings()
             } catch (e: Exception) {
                 _errorMessage.value = e.message
             }
         }
     }
 
+    // Загрузка бронирований пользователя
     fun loadBookings(userId: String) {
         viewModelScope.launch {
             try {
@@ -798,6 +824,7 @@ class HotelViewModel(
         }
     }
 
+    // Загрузка всех бронирований
     fun loadAllBookings() {
         viewModelScope.launch {
             try {
@@ -811,6 +838,7 @@ class HotelViewModel(
         }
     }
 
+    // Загрузка всех пользователей
     fun loadUsers() {
         viewModelScope.launch {
             try {
@@ -824,10 +852,12 @@ class HotelViewModel(
         }
     }
 
+    // Очистка сообщения об ошибке
     fun clearError() {
         _errorMessage.value = null
     }
 
+    // Установка сообщения об ошибке
     fun setErrorMessage(message: String) {
         _errorMessage.value = message
     }

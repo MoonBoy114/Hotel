@@ -55,7 +55,6 @@ data class ServiceItem(
     val description: String? = null,
     val images: List<Int>? = null
 )
-
 @Composable
 fun ServicesScreen(navController: NavHostController, modifier: Modifier = Modifier) {
     val services = listOf(

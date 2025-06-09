@@ -59,11 +59,9 @@ import kotlinx.coroutines.launch
 val GreatVib = FontFamily(
 Font(R.font.greatvibes, FontWeight.Normal)
 )
-
 val Monst = FontFamily(
     Font(R.font.montserrat_variablefont_wght, FontWeight.Bold)
 )
-
 @Composable
 fun RegisterScreen(viewModel: HotelViewModel, navController: NavHostController) {
     var name by remember { mutableStateOf("") }

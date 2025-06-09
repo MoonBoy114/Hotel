@@ -47,8 +47,7 @@ import com.example.hotel.data.viewmodel.HotelViewModel
 import java.time.LocalDate
 import java.time.format.DateTimeFormatter
 
-
-var money: Double = 100000.0
+var money: Double = 5000.0
 
 @Composable
 fun ProfileScreen(viewModel: HotelViewModel, navController: NavHostController, modifier: Modifier = Modifier) {
@@ -58,20 +57,18 @@ fun ProfileScreen(viewModel: HotelViewModel, navController: NavHostController, m
 
     val currentName = currentUser?.name
 
-    // Загружаем данные и проверяем даты
+
     LaunchedEffect(Unit) {
         viewModel.loadRooms()
         currentUser?.let { viewModel.loadBookings(it.userId) }
     }
 
-// Фильтруем бронирования: показываем только те, у которых checkOutDate ещё не наступил (строго больше текущей даты)
+
     val activeBookings = bookings.filter { booking ->
         val formatter = DateTimeFormatter.ofPattern("dd.MM.yyyy")
         val currentDate = LocalDate.now().format(formatter)
-        currentDate > booking.checkOutDate
+        booking.userId == currentUser?.userId && currentDate <= booking.checkOutDate
     }
-
-
 
     Scaffold(
         topBar = {
@@ -93,7 +90,6 @@ fun ProfileScreen(viewModel: HotelViewModel, navController: NavHostController, m
                             .height(30.dp)
                             .padding(start = 16.dp) // Отступ слева для логотипа
                     )
-
                 }
             }
         },
@@ -154,7 +150,7 @@ fun ProfileScreen(viewModel: HotelViewModel, navController: NavHostController, m
                         .fillMaxWidth()
                         .padding(16.dp)
                         .background(Color.White, RoundedCornerShape(10.dp))
-                        .clickable{ navController.navigate("aboutMe") },
+                        .clickable { navController.navigate("aboutMe") },
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     Image(
@@ -260,7 +256,8 @@ fun ProfileScreen(viewModel: HotelViewModel, navController: NavHostController, m
                         color = Color.Black
                     )
 
-                    if (activeBookings.isEmpty() || currentUser?.role == "Manager") {
+
+                    if (activeBookings.isEmpty() || currentUser?.role == "Guest") {
                         Text(
                             text = "Тут отобразятся бронирования пользователя",
                             fontSize = 14.sp,
@@ -374,7 +371,7 @@ fun ProfileScreen(viewModel: HotelViewModel, navController: NavHostController, m
                     Row(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .clickable {navController.navigate("services") },
+                            .clickable { navController.navigate("services") },
                         verticalAlignment = Alignment.CenterVertically
                     ) {
                         Icon(
@@ -384,7 +381,6 @@ fun ProfileScreen(viewModel: HotelViewModel, navController: NavHostController, m
                                 .padding(8.dp)
                                 .size(30.dp),
                             tint = Color(0xFFF58D4D)
-
                         )
 
                         Text(

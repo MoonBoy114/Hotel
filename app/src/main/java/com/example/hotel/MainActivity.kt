@@ -301,7 +301,7 @@ fun OrangeNavigationBar(navController: NavHostController) {
         containerColor = Color(0xFFF58D4D),
         modifier = Modifier
             .fillMaxWidth()
-            .height(60.dp) // Уменьшаем высоту панели
+            .height(60.dp)
             .background(Color(0xFFF58D4D))
             .imeNestedScroll()
     ) {
@@ -370,14 +370,14 @@ fun OrangeNavigationBar(navController: NavHostController) {
                 Icon(
                     painter = painterResource(id = R.drawable.ic_profile),
                     contentDescription = "Профиль",
-                    modifier = Modifier.size(18.dp), // Уменьшаем размер иконки
+                    modifier = Modifier.size(18.dp),
                     tint = if (currentRoute == "profile") Color.White else Color.White.copy(alpha = 0.7f)
                 )
             },
             label = {
                 Text(
                     text = "Профиль",
-                    fontSize = 10.sp // Уменьшаем размер текста
+                    fontSize = 10.sp
                 )
             },
             selected = currentRoute == "profile",
